@@ -27,6 +27,8 @@ funciona también desde `file://`.)
       API key, URL de instancia, correo ni nombre de cuenta visible.
       (`guardar-env.png` y `env-credenciales-redactadas-v1.png` ya van tapadas;
       verificar que el tapado cubre todo en pantallas de alta densidad.)
-- [ ] Confirmar que el texto no menciona instancias, credenciales ni personas.
+- [ ] Confirmar que el texto no menciona instancias ni credenciales.
+- [ ] Si el público es IBM interno, cambiar el correo del pie (y el `mailto:`)
+      por el correo de IBM de Miguel en vez del personal.
 - [ ] Decidir dominio/hosting (GitHub Pages es suficiente: estático puro).
 - [ ] Actualizar la línea de versión si el contenido cambió respecto al PDF.
