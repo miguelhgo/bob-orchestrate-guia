@@ -1,6 +1,6 @@
 # Guía web · Crea y prueba agentes hablando con IBM Bob
 
-Versión web de la guía visual v10 del taller IBM Bob + watsonx Orchestrate.
+Versión web de la guía visual v11 del taller IBM Bob + watsonx Orchestrate.
 Página estática (HTML + CSS, sin build ni dependencias) con el mismo contenido
 que el PDF distribuido a los participantes.
 
