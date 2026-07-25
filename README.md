@@ -41,5 +41,4 @@ Si se cambia cualquier captura, repetir esta revisión antes de hacer push.
 
 ## Pendiente
 
-- [ ] Espejo interno en github.ibm.com (org del equipo) con Pages interno;
-      al hacerlo, cambiar el correo del pie (`mailto:`) por el de IBM.
+- [ ] Espejo interno en github.ibm.com (org del equipo) con Pages interno.
