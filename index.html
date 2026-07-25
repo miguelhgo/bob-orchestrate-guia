@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crea y prueba agentes hablando con IBM Bob · Guía visual</title>
+  <meta name="description" content="Recorrido automatizado para crear y probar agentes de watsonx Orchestrate hablando con IBM Bob. Mac y Windows." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" type="image/png" href="assets/bob-orchestrate-transparent-v1.png" />
+</head>
+<body>
+
+<nav class="toc" aria-label="Índice">
+  <a class="toc-brand" href="#inicio"><img src="assets/bob-orchestrate-transparent-v1.png" alt="" /><span>Bob + Orchestrate</span></a>
+  <a href="#concepto">Dos agentes, dos papeles</a>
+  <a href="#paso-0">0 · Instala o actualiza Bob</a>
+  <a href="#paso-1">1 · Prepara y abre el paquete</a>
+  <a href="#paso-2">2 · Completa la conexión</a>
+  <a href="#paso-3">3 · Dile a Bob qué agente quieres</a>
+  <a href="#paso-4">4 · Revisa antes de importar</a>
+  <a href="#paso-5">5 · Comprueba el resultado</a>
+  <a href="#paso-6">6 · Lista tus agentes</a>
+  <a href="#paso-7">7 · Encuéntralo en Orchestrate</a>
+  <a href="#paso-8">8 · Abre el agente</a>
+  <a href="#paso-9">9 · Pruébalo en Orchestrate</a>
+  <a href="#ayuda">Si algo no funciona</a>
+</nav>
+
+<main>
+
+<header id="inicio" class="hero">
+  <img class="hero-logo" src="assets/bob-orchestrate-transparent-v1.png" alt="IBM Bob junto al símbolo de watsonx Orchestrate" />
+  <p class="eyebrow">GUÍA VISUAL · MAC Y WINDOWS</p>
+  <h1>Crea y prueba agentes<br />hablando con IBM Bob</h1>
+  <p class="subtitle">Recorrido automatizado para watsonx Orchestrate</p>
+  <div class="callout green">
+    <p class="callout-label">EN UNA FRASE</p>
+    <p>Abre el paquete, completa la conexión y cuéntale a Bob qué agente quieres. Bob preparará, importará y probará el agente contigo.</p>
+  </div>
+  <p class="version">Versión visual 10 · 25 de julio de 2026</p>
+</header>
+
+<section id="concepto">
+  <p class="eyebrow">DOS AGENTES DE IA · DOS PAPELES DISTINTOS</p>
+  <h2 class="big">Usamos el agente de IA de Bob para construir otro agente de IA en Orchestrate</h2>
+  <p class="lead">En este taller intervienen dos agentes de IA: el agente integrado en Bob actúa como constructor y crea el agente de negocio que después funciona y se prueba en watsonx Orchestrate.</p>
+  <figure>
+    <img src="assets/bob-construye-agente-v1.png" alt="Una persona describe el agente que necesita; IBM Bob lo construye y el nuevo agente funciona en watsonx Orchestrate." />
+    <figcaption>La persona explica el objetivo · Bob construye · Orchestrate ejecuta el agente creado</figcaption>
+  </figure>
+  <p><strong>Agente de IA de Bob.</strong> Comprende la petición, trabaja sobre el proyecto y realiza el proceso técnico bajo aprobación.</p>
+  <p><strong>Agente de IA de Orchestrate.</strong> Es el resultado final: atiende a sus usuarios con el comportamiento y las capacidades definidos.</p>
+</section>
+
+<section id="paso-0">
+  <h2>0. Instala o actualiza IBM Bob</h2>
+  <p>El recorrido necesita una versión reciente de IBM Bob. Las versiones antiguas (1.x) provocan fallos extraños durante el proceso.</p>
+  <h3>Paso 1 · Descarga Bob</h3>
+  <p>Entra en <a href="https://bob.ibm.com/download" rel="noopener">bob.ibm.com</a> y pulsa Descargar (Mac y Windows).</p>
+  <figure>
+    <img src="assets/bob-web-v1.png" alt="Página oficial de IBM Bob con el mensaje de bienvenida y el botón Descargar en la esquina superior." />
+    <figcaption>La web oficial bob.ibm.com con el botón Descargar.</figcaption>
+  </figure>
+  <h3>Paso 2 · Instala e inicia sesión</h3>
+  <p>Abre el instalador y entra con tu cuenta de IBM cuando Bob lo pida.</p>
+  <div class="callout yellow">
+    <p class="callout-label">¿YA TENÍAS BOB INSTALADO?</p>
+    <p>Si tu versión es antigua (1.x), desinstálala por completo e instala la actual desde bob.ibm.com. Es también el arreglo directo si Bob se comporta de forma extraña.</p>
+  </div>
+</section>
+
+<section id="paso-1">
+  <h2>1. Prepara y abre el paquete</h2>
+  <p>Necesitas IBM Bob con la sesión iniciada, Internet, la VPN si tu empresa la requiere y la URL y API key de watsonx Orchestrate.</p>
+  <h3>Paso 1 · Descomprime el ZIP</h3>
+  <p>En macOS, haz doble clic. En Windows, botón derecho → Extraer todo → Extraer.</p>
+  <h3>Paso 2 · Abre la carpeta en Bob</h3>
+  <p>Pulsa File → Open Folder y elige <code>taller-bob-orchestrate-automatizado</code>.</p>
+  <figure>
+    <img src="assets/abrir-carpeta.png" alt="Menú File de IBM Bob con la opción Open Folder resaltada por una flecha roja." />
+    <figcaption>En IBM Bob: File → Open Folder.</figcaption>
+  </figure>
+  <div class="callout yellow">
+    <p class="callout-label">LA CARPETA CORRECTA</p>
+    <p>Abre la carpeta extraída, no el archivo ZIP ni una carpeta situada por encima de ella.</p>
+  </div>
+  <div class="callout cyan">
+    <p class="callout-label">LA PRIMERA VEZ QUE ABRES BOB</p>
+    <p>Si Bob pregunta por importar ajustes de otro editor, pulsa Skip for now. Si aparece la pestaña Get started, ciérrala. Y si arriba ves un botón azul Update, tu Bob no es la última versión: vuelve al paso 0.</p>
+  </div>
+</section>
+
+<section id="paso-2">
+  <h2>2. Completa la conexión</h2>
+  <p>En el panel izquierdo abre <code>.env</code>. Completa únicamente <code>WXO_URL=</code> y <code>WXO_API_KEY=</code>, y guarda el archivo: ⌘S en Mac, Ctrl+S en Windows (o File → Save). El punto de la pestaña de .env desaparece al guardar.</p>
+  <figure>
+    <img src="assets/env-credenciales-redactadas-v1.png" alt="IBM Bob con el archivo .env abierto. Los valores de WXO_URL y WXO_API_KEY están cubiertos por completo con rectángulos rojos." />
+    <figcaption>Abre .env y pega allí la URL y la API key; en esta captura ambos valores están ocultos.</figcaption>
+  </figure>
+  <div class="callout red">
+    <p class="callout-label">PROTEGE LA CLAVE</p>
+    <p>Pega la API key solo en .env. No la escribas en el chat, no adjuntes el archivo y no la incluyas en capturas.</p>
+  </div>
+  <figure>
+    <img src="assets/guardar-env.png" alt="Menú File de IBM Bob con la opción Save resaltada por una flecha roja." />
+    <figcaption>Guarda el archivo con File → Save (⌘S en Mac, Ctrl+S en Windows).</figcaption>
+  </figure>
+</section>
+
+<section id="paso-3">
+  <h2>3. Dile a Bob qué agente quieres</h2>
+  <h3>Paso 1 · Selecciona el modo</h3>
+  <p>En el selector junto al chat elige 🤖 Crear agente Orchestrate.</p>
+  <figure>
+    <img src="assets/modo-selector.png" alt="Desplegable de modos de IBM Bob mostrando el modo Crear agente Orchestrate señalado por una flecha roja." />
+    <figcaption>El selector de modos con 🤖 Crear agente Orchestrate.</figcaption>
+  </figure>
+  <h3>Paso 2 · Escribe o dicta tu petición</h3>
+  <p>Descríbelo con tus propias palabras. Por ejemplo:</p>
+  <div class="prompt">Quiero un agente que dé la bienvenida en español, explique cómo puede ayudar y termine cada respuesta preguntando si necesito algo más.</div>
+  <figure>
+    <img src="assets/peticion-modo.png" alt="Cuadro de mensaje de IBM Bob con la petición escrita y el modo Crear agente Orchestrate visible en el selector, resaltado en rojo." />
+    <figcaption>La petición escrita con el modo 🤖 Crear agente Orchestrate seleccionado.</figcaption>
+  </figure>
+  <h3>Paso 3 · Aprueba las acciones</h3>
+  <p>Cuando Bob pida permiso, pulsa Approve for task para aprobar ese tipo de acción durante toda la tarea (Approve once la aprueba solo una vez).</p>
+  <h3>Paso 4 · Acepta el entorno de Python</h3>
+  <p>Si aparece el aviso “We noticed a new environment has been created”, pulsa Yes.</p>
+  <figure>
+    <img src="assets/entorno-python.png" alt="Notificación de IBM Bob sobre un nuevo entorno de Python con el botón Yes señalado por una flecha roja." />
+    <figcaption>El aviso del nuevo entorno de Python: pulsa Yes.</figcaption>
+  </figure>
+  <h3>Paso 5 · La advertencia de seguridad</h3>
+  <p>Si tu equipo necesita instalar Python y Poetry (lo normal la primera vez), esa aprobación llega con una advertencia de seguridad: marca la casilla I understand the risk y pulsa Approve. Es el único paso que puede traer esa casilla y es el que Bob te acaba de anunciar. Si no aparece, tu equipo ya tenía Python: sigue adelante.</p>
+  <figure class="narrow">
+    <img src="assets/casilla-seguridad.png" alt="Aprobación de IBM Bob para instalar Python y Poetry, con la advertencia de seguridad y la casilla I understand the risk." />
+    <figcaption>La única advertencia de seguridad del recorrido: marca la casilla y aprueba.</figcaption>
+  </figure>
+  <div class="callout cyan">
+    <p class="callout-label">LOS PERMISOS SON TU CONTROL</p>
+    <p>Bob pide permiso la primera vez que hace cada tipo de acción (ejecutar los pasos de preparación, editar los archivos del agente). Es su diseño de seguridad: nada ocurre sin tu OK. En este taller nunca te pedirá contraseñas ni comandos con sudo; si algo así apareciera, avisa al facilitador.</p>
+  </div>
+</section>
+
+<section id="paso-4">
+  <h2>4. Revisa antes de importar</h2>
+  <p>Bob te enseñará un resumen: qué hará el agente, qué no hará, cómo se importará y qué pregunta utilizará para probarlo.</p>
+  <h3>Paso 1 · Lee el resumen</h3>
+  <p>Comprueba que describe lo que pediste.</p>
+  <h3>Paso 2 · Confirma</h3>
+  <p>Responde “Sí, adelante”.</p>
+  <h3>Paso 3 · Aprueba la importación</h3>
+  <p>Pulsa Approve once cuando Bob lo solicite.</p>
+  <figure>
+    <img src="assets/resumen-importar.png" alt="IBM Bob muestra el resumen del agente, la confirmación Sí, adelante y una aprobación pendiente." />
+    <figcaption>Después de confirmar, Bob pide permiso para importar y probar.</figcaption>
+  </figure>
+  <div class="callout green">
+    <p class="callout-label">IMPORTACIÓN SEGURA</p>
+    <p>El agente se crea como borrador. No se activa ni se publica en producción.</p>
+  </div>
+</section>
+
+<section id="paso-5">
+  <h2>5. Comprueba el resultado en Bob</h2>
+  <p>Al terminar, Bob confirma la importación y muestra una respuesta real del agente.</p>
+  <figure>
+    <img src="assets/resultado-bob.png" alt="IBM Bob confirma con una marca verde que el agente está listo en borrador y muestra su respuesta de prueba." />
+    <figcaption>Resultado correcto: importado y probado con éxito.</figcaption>
+  </figure>
+</section>
+
+<section id="paso-6">
+  <h2>6. Pídele que liste tus agentes</h2>
+  <p>Puedes comprobar desde el propio chat qué agentes hay disponibles. Cada persona verá los de su propia instancia: puede aparecer uno, tres o cualquier otra cantidad.</p>
+  <div class="prompt">Lista mis agentes.</div>
+  <figure>
+    <img src="assets/listar-agentes.png" alt="Tabla en IBM Bob con varios agentes en borrador; cada persona puede ver una cantidad distinta." />
+    <figcaption>Bob muestra los agentes disponibles para esa persona. La cantidad puede variar.</figcaption>
+  </figure>
+</section>
+
+<section id="paso-7">
+  <h2>7. Encuentra el agente en Orchestrate</h2>
+  <h3>Paso 1 · Abre watsonx Orchestrate</h3>
+  <p>Entra en tu instancia desde el navegador.</p>
+  <h3>Paso 2 · Ve a Manage agents</h3>
+  <p>Abre el menú, entra en Chat y pulsa Manage agents.</p>
+  <figure>
+    <img src="assets/manage-agents.png" alt="Interfaz de watsonx Orchestrate con el enlace Manage agents resaltado por una flecha roja." />
+    <figcaption>En Chat, pulsa Manage agents en la esquina inferior izquierda.</figcaption>
+  </figure>
+</section>
+
+<section id="paso-8">
+  <h2>8. Abre el agente</h2>
+  <p>Localiza la tarjeta del agente que Bob acaba de crear y ábrela.</p>
+  <figure>
+    <img src="assets/abrir-agente.png" alt="Pantalla Manage agents de watsonx Orchestrate con la tarjeta del agente recién creado resaltada." />
+    <figcaption>Abre la tarjeta del agente recién creado.</figcaption>
+  </figure>
+</section>
+
+<section id="paso-9">
+  <h2>9. Pruébalo en Orchestrate</h2>
+  <p>Escribe una pregunta en el cuadro Preview de la derecha. Si ves una respuesta coherente, la prueba ha terminado.</p>
+  <figure>
+    <img src="assets/preview-orchestrate.png" alt="Ficha de un agente en watsonx Orchestrate con una conversación de prueba visible en el panel Preview." />
+    <figcaption>Prueba del agente desde el panel Preview.</figcaption>
+  </figure>
+</section>
+
+<section id="ayuda">
+  <h2>Si algo no funciona</h2>
+  <table>
+    <thead>
+      <tr><th>Elemento</th><th>Qué debe ocurrir</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>No aparece el modo</td><td>Abre la carpeta que contiene .bob, scripts y src; reinicia Bob.</td></tr>
+      <tr><td>No conecta</td><td>Revisa Internet, VPN, URL y API key. No compartas .env.</td></tr>
+      <tr><td>No ves el agente</td><td>Dile a Bob: “Lista mis agentes” y busca ese nombre en Manage agents.</td></tr>
+      <tr><td>Bob pide cambiar de modo o editar código</td><td>No cambies de modo, no edites scripts y no concedas permiso Edit. Cierra ese intento y abre de nuevo la carpeta del paquete.</td></tr>
+      <tr><td>Bob falla o hace cosas raras</td><td>Desinstala IBM Bob por completo e instala la última versión desde bob.ibm.com.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout yellow">
+    <p class="callout-label">AL PEDIR AYUDA</p>
+    <p>Comparte el paso y el mensaje de error, pero oculta siempre la API key, la URL privada y el contenido de .env.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Guía visual del recorrido automatizado IBM Bob + watsonx Orchestrate · Versión 10 · Julio de 2026</p>
+</footer>
+
+</main>
+</body>
+</html>
