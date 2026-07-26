@@ -17,8 +17,8 @@ python3 -m http.server 8080
 
 y abre <http://localhost:8080>.
 
-(O simplemente doble clic en `index.html`; al no haber JavaScript ni fetch,
-funciona también desde `file://`.)
+(O simplemente doble clic en `index.html`; el único JavaScript es un visor
+de imágenes inline sin peticiones, así que funciona también desde `file://`.)
 
 ## Estructura
 

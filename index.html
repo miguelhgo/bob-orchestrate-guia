@@ -244,5 +244,32 @@
 </footer>
 
 </main>
+
+<script>
+(function () {
+  var overlay = document.createElement('div');
+  overlay.className = 'lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-label', 'Imagen ampliada');
+  var big = document.createElement('img');
+  overlay.appendChild(big);
+  function close() {
+    overlay.classList.remove('open');
+    setTimeout(function () { overlay.remove(); }, 200);
+  }
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay.isConnected) close();
+  });
+  document.querySelectorAll('figure img').forEach(function (img) {
+    img.addEventListener('click', function () {
+      big.src = img.src;
+      big.alt = img.alt;
+      document.body.appendChild(overlay);
+      requestAnimationFrame(function () { overlay.classList.add('open'); });
+    });
+  });
+})();
+</script>
 </body>
 </html>
