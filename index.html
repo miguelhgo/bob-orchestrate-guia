@@ -30,6 +30,8 @@
   <a href="#ayuda">Si algo no funciona</a>
 </nav>
 
+<a class="skip-btn" id="ya-tengo-bob-btn" href="#ya-lo-tengo">Ya tengo Bob instalado ↓</a>
+
 <main>
 
 <header id="inicio" class="hero">
@@ -79,7 +81,7 @@
   </figure>
   <h3><span class="step-n">2</span>Instala e inicia sesión</h3>
   <p>Abre el instalador y entra con tu cuenta de IBM cuando Bob lo pida.</p>
-  <h3><span class="step-n">3</span>Comprueba la versión</h3>
+  <h3 id="ya-lo-tengo"><span class="step-n">3</span>Comprueba la versión</h3>
   <p>Pulsa el engranaje del panel de Bob para abrir Bob Settings: la versión aparece en la columna izquierda y debe ser 2.0.0 o superior.</p>
   <figure>
     <img src="assets/version-bob.png" alt="Bob Settings abierto: una flecha señala el engranaje del panel de IBM Bob y un recuadro rojo marca Version 2.0.0 en la columna izquierda." />
@@ -287,6 +289,21 @@
       requestAnimationFrame(function () { overlay.classList.add('open'); });
     });
   });
+})();
+
+// Botón "Ya tengo Bob": visible solo mientras no has llegado a la
+// comprobación de versión; desaparece al llegar y reaparece si vuelves arriba.
+(function () {
+  var btn = document.getElementById('ya-tengo-bob-btn');
+  var target = document.getElementById('ya-lo-tengo');
+  if (!btn || !target) return;
+  function update() {
+    var reached = target.getBoundingClientRect().top <= 120;
+    btn.classList.toggle('skip-hidden', reached);
+  }
+  document.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
 })();
 </script>
 </body>
