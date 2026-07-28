@@ -23,6 +23,7 @@
   <a href="#paso-3">3 · Dile a Bob qué agente quieres</a>
   <a href="#paso-4">4 · Revisa antes de importar</a>
   <a href="#paso-5">5 · Comprueba el resultado</a>
+  <a href="#registro-github">Opcional · Comparte tu agente</a>
   <a href="#paso-6">6 · Lista tus agentes</a>
   <a href="#paso-7">7 · Encuéntralo en Orchestrate</a>
   <a href="#paso-8">8 · Abre el agente</a>
@@ -43,7 +44,7 @@
     <p class="callout-label">EN UNA FRASE</p>
     <p>Abre el paquete, completa la conexión y cuéntale a Bob qué agente quieres. Bob preparará, importará y probará el agente contigo.</p>
   </div>
-  <p class="version">Versión visual 16 · 28 de julio de 2026</p>
+  <p class="version">Versión visual 17 · 28 de julio de 2026</p>
 </header>
 
 <section id="concepto">
@@ -232,6 +233,33 @@
     <img src="assets/resultado-bob.png" alt="IBM Bob confirma con una marca verde que el agente está listo en borrador y muestra su respuesta de prueba." />
     <figcaption>Resultado correcto: importado y probado con éxito.</figcaption>
   </figure>
+</section>
+
+<section id="registro-github">
+  <h2><span class="sec-n">Opcional</span>Comparte tu agente en GitHub</h2>
+  <p>Al importar, el paquete guarda también una copia de tu agente en un repositorio git personal, para poder compartirlo. Si tu GitHub aún no está conectado, Bob te lo ofrecerá: te enseñará un código en el chat y se abrirá el navegador. No necesitas la terminal.</p>
+  <h3><span class="step-n">1</span>Escribe el código</h3>
+  <p>Copia en el navegador el código que Bob te ha enseñado y pulsa Continue. El código caduca a los 15 minutos: si se pasa, pídele otro a Bob.</p>
+  <figure>
+    <img src="assets/registro-codigo.png" alt="Pantalla Device Activation de GitHub con las casillas para escribir el código de un solo uso." />
+    <figcaption>Escribe el código que te dio Bob y pulsa Continue.</figcaption>
+  </figure>
+  <h3><span class="step-n">2</span>Autoriza la conexión</h3>
+  <p>GitHub te enseña qué permisos vas a conceder. Pulsa el botón verde.</p>
+  <figure>
+    <img src="assets/registro-authorize.png" alt="Pantalla Authorize GitHub CLI con el botón verde Authorize github-enterprise." />
+    <figcaption>Pulsa Authorize github-enterprise.</figcaption>
+  </figure>
+  <h3><span class="step-n">3</span>Vuelve a Bob</h3>
+  <p>Cuando veas esta pantalla, ya está. Dile a Bob que has terminado: comprobará la conexión y te dará la dirección de tu repositorio.</p>
+  <figure>
+    <img src="assets/registro-hecho.png" alt="Pantalla de GitHub con una marca verde y el mensaje Congratulations, your device is now connected." />
+    <figcaption>Conexión completada. El registro sigue solo desde Bob.</figcaption>
+  </figure>
+  <div class="callout cyan">
+    <p class="callout-label">¿NO TIENES CUENTA EN GITHUB.IBM.COM?</p>
+    <p>Entra una vez en github.ibm.com con tu w3id. Si te pide solicitar acceso, búscalo en AccessHub como GitHub Enterprise (GHE). Mientras tanto no pierdes nada: tu agente queda registrado en tu equipo y se subirá solo cuando la conexión esté lista.</p>
+  </div>
 </section>
 
 <section id="paso-6">
