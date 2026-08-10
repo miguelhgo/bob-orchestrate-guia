@@ -5,17 +5,30 @@ Maqueta 3D interactiva de la zona de la Castellana en Madrid, construida con
 en un único `index.html`** (la librería incluida), así que funciona sin conexión
 y sin dependencias externas.
 
+## Realismo geográfico
+
+Los edificios se colocan con **coordenadas reales** (lat/lon proyectadas a metros
+mediante proyección equirectangular alrededor de un centro en AZCA), con
+**alturas reales**, de modo que **las distancias y posiciones relativas son
+correctas**. El render usa cristal PBR con reflejos del cielo (*environment map*
+por PMREM), tone mapping ACES y niebla atmosférica para la lejanía.
+
+> Nota: no es fotogrametría (tipo Google Earth); eso requiere servidores de
+> *tiles* externos con clave de API, no disponibles en este entorno. Es un modelo
+> geométrico con datos reales de posición y altura, y proporciones aproximadas.
+
 ## Qué incluye
 
-- 🏟️ **Estadio Santiago Bernabéu** — con su piel metálica ondulada, anillo
-  superior, cubierta y césped.
-- 🏢 **Torre Picasso** y el distrito **AZCA** (Torre Europa, bloques adyacentes).
-- 🏛️ **Nuevos Ministerios** — complejo alargado con arcada de columnas y torres.
-- 🌳 Paseo de la Castellana con mediana, carriles, coches en movimiento, árboles,
-  calles transversales, tejido urbano de fondo, nubes, sombras y luz de mediodía.
-
-> Interpretación estilizada y reconocible (proporciones aproximadas), no un
-> modelo a escala catastral.
+- 🏟️ **Estadio Santiago Bernabéu** (~52 m) — piel metálica de lamas verticales
+  onduladas, anillo superior y cubierta.
+- 🏢 **AZCA**: **Torre Picasso** (157 m, blanca con esquinas redondeadas),
+  **Torre Europa** (121 m), **Torre BBVA / Castellana 81** (107 m, bandas
+  rojizas de Sáenz de Oíza) y **Torre Titania** (104 m).
+- 🏛️ **Nuevos Ministerios** — complejo en U con arcada de columnas y torre central.
+- 🌆 **Cuatro Torres (CTBA)** al norte, a ~3,2 km reales: Cristal (249 m),
+  Cepsa (248 m), PwC (236 m), Espacio (224 m) y Caleido (181 m).
+- 🌳 Paseo de la Castellana con mediana, coches en movimiento, arbolado, base
+  cartográfica con trama de calles, sombras y luz de mediodía.
 
 ## Cómo usarlo
 

@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#9fc4e8">
-<title>Madrid 3D · Castellana</title>
+<meta name="theme-color" content="#bcd2e8">
+<title>Madrid 3D · Castellana (geo-realista)</title>
 </head>
 <body>
 <style>
@@ -40,7 +40,7 @@
 
 <div id="title">
   <b>Madrid · Paseo de la Castellana</b>
-  <span>Bernabéu · Torre Picasso / AZCA · Nuevos Ministerios</span>
+  <span>Bernabéu · AZCA / Torre Picasso · Nuevos Ministerios · Cuatro Torres</span>
 </div>
 
 <div id="ui">
@@ -1105,290 +1105,405 @@
 } )();
 </script>
 <script>
-/* ===== MADRID · Paseo de la Castellana =====
-   Bernabéu · AZCA / Torre Picasso · Nuevos Ministerios
-   Táctil: 1 dedo = girar · 2 dedos = zoom/mover                */
+/* =====================================================================
+   MADRID · Paseo de la Castellana  —  versión geográfica realista
+   Coordenadas reales (lat/lon → metros), alturas reales, cristal PBR.
+   Bernabéu · AZCA (Torre Picasso, Europa, BBVA, Titania) ·
+   Nuevos Ministerios · Cuatro Torres (CTBA) al norte.
+   Táctil: 1 dedo = girar · 2 dedos = zoom / mover
+   ===================================================================== */
 (function () {
   const canvas = document.getElementById('c');
 
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x9fc4e8);
-  scene.fog = new THREE.Fog(0x9fc4e8, 420, 950);
+  // ---------- Geographic projection (equirectangular around a center) ----------
+  const LAT0 = 40.4470, LON0 = -3.6905;               // ~ AZCA / Castellana
+  const MPD_LAT = 111132;                              // m per ° latitude
+  const MPD_LON = 111320 * Math.cos(LAT0 * Math.PI / 180); // m per ° longitude (~84.7k)
+  function proj(lat, lon) {                            // → [x(east), z(north-neg)]
+    return [(lon - LON0) * MPD_LON, -(lat - LAT0) * MPD_LAT];
+  }
 
-  const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 2000);
-
+  // ---------- Renderer ----------
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+
+  const scene = new THREE.Scene();
+  const HORIZON = new THREE.Color(0xbcd2e8);
+  scene.fog = new THREE.Fog(HORIZON, 1400, 6500);     // atmospheric haze → CTBA looks distant
+
+  const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 1, 30000);
 
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.rotateSpeed = 0.5;
-  controls.zoomSpeed = 0.8;
-  controls.target.set(-5, 15, -50);
-  controls.maxPolarAngle = Math.PI * 0.49;
-  controls.minDistance = 70;
-  controls.maxDistance = 750;
+  controls.target.set(20, 60, -350);
+  controls.maxPolarAngle = Math.PI * 0.495;
+  controls.minDistance = 120;
+  controls.maxDistance = 5000;
 
-  const HOME = {
-    pos: new THREE.Vector3(210, 165, 250),
-    tgt: new THREE.Vector3(-5, 15, -50),
-  };
+  const HOME = { pos: new THREE.Vector3(700, 560, 950), tgt: new THREE.Vector3(20, 60, -350) };
   function home() {
-    // wider pull-back on narrow (portrait) screens
     const portrait = innerWidth < innerHeight;
-    camera.position.copy(HOME.pos).multiplyScalar(portrait ? 1.35 : 1);
+    camera.position.copy(HOME.pos).multiplyScalar(portrait ? 1.5 : 1);
     controls.target.copy(HOME.tgt);
     controls.update();
   }
 
-  // ---- Lighting ----
-  const sun = new THREE.DirectionalLight(0xfff2d8, 1.05);
-  sun.position.set(160, 240, 120);
+  // ---------- Sky + environment (procedural equirectangular) ----------
+  function makeSky() {
+    const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+    const g = c.getContext('2d');
+    const grd = g.createLinearGradient(0, 0, 0, 512);
+    grd.addColorStop(0.00, '#1f5aa8');
+    grd.addColorStop(0.38, '#5f97d6');
+    grd.addColorStop(0.49, '#bcd6ee');
+    grd.addColorStop(0.50, '#c7c0b0');   // below horizon (ground haze, feeds reflections)
+    grd.addColorStop(1.00, '#8f8a7c');
+    g.fillStyle = grd; g.fillRect(0, 0, 1024, 512);
+    // sun glow (upper right)
+    const sx = 1024 * 0.66, sy = 512 * 0.26;
+    const gg = g.createRadialGradient(sx, sy, 0, sx, sy, 210);
+    gg.addColorStop(0, 'rgba(255,252,238,1)');
+    gg.addColorStop(0.12, 'rgba(255,246,214,0.95)');
+    gg.addColorStop(1, 'rgba(255,246,214,0)');
+    g.fillStyle = gg; g.fillRect(0, 0, 1024, 300);
+    // soft clouds
+    g.globalAlpha = 0.10;
+    for (let i = 0; i < 40; i++) {
+      const x = Math.random() * 1024, y = 40 + Math.random() * 150, r = 30 + Math.random() * 90;
+      g.fillStyle = '#ffffff';
+      g.beginPath(); g.ellipse(x, y, r, r * 0.4, 0, 0, Math.PI * 2); g.fill();
+    }
+    g.globalAlpha = 1;
+    const t = new THREE.CanvasTexture(c);
+    t.mapping = THREE.EquirectangularReflectionMapping;
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+  const skyTex = makeSky();
+  scene.background = skyTex;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromEquirectangular(skyTex).texture;
+
+  // ---------- Lights ----------
+  const sun = new THREE.DirectionalLight(0xfff2d6, 2.1);
+  sun.position.set(900, 1200, 500);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  const S = 380;
+  const S = 900;
   sun.shadow.camera.left = -S; sun.shadow.camera.right = S;
   sun.shadow.camera.top = S; sun.shadow.camera.bottom = -S;
-  sun.shadow.camera.far = 900;
-  sun.shadow.bias = -0.0004;
-  scene.add(sun);
-  scene.add(new THREE.HemisphereLight(0xcfe6ff, 0x6b6b60, 0.55));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.22));
+  sun.shadow.camera.near = 100; sun.shadow.camera.far = 4000;
+  sun.shadow.bias = -0.0003;
+  sun.target.position.set(0, 0, -300);
+  scene.add(sun); scene.add(sun.target);
+  scene.add(new THREE.HemisphereLight(0xdcecff, 0x6a6656, 0.5));
 
-  // ---- Ground ----
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(1600, 1600),
-    new THREE.MeshStandardMaterial({ color: 0x8f9384, roughness: 1 })
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.receiveShadow = true;
-  scene.add(ground);
+  // ---------- Materials ----------
+  function glass(color, rough) {
+    return new THREE.MeshStandardMaterial({ color, metalness: 0.95, roughness: rough == null ? 0.1 : rough, envMapIntensity: 1.25 });
+  }
+  const matAsphalt = new THREE.MeshStandardMaterial({ color: 0x2f3237, roughness: 0.95 });
+  const matConcrete = new THREE.MeshStandardMaterial({ color: 0xbfb8a8, roughness: 0.85, metalness: 0.05 });
+  const matWhite = new THREE.MeshStandardMaterial({ color: 0xe9e6dc, roughness: 0.6, metalness: 0.05 });
+  const matDark = new THREE.MeshStandardMaterial({ color: 0x2a2d33, roughness: 0.7 });
+  const matRoof = new THREE.MeshStandardMaterial({ color: 0x4a4e54, roughness: 0.9 });
+  const matPitch = new THREE.MeshStandardMaterial({ color: 0x2f7d33, roughness: 1 });
 
-  // ---- helpers ----
-  function winTexture(cols, rows, base, litProb) {
-    const cw = 6, ch = 8;
-    const c = document.createElement('canvas');
+  // ---------- Facade window textures (shared, reused for perf) ----------
+  function facadeTex(bg, lit, cols, rows, litProb) {
+    const cw = 8, ch = 10, c = document.createElement('canvas');
     c.width = cols * cw; c.height = rows * ch;
     const g = c.getContext('2d');
-    g.fillStyle = base; g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = bg; g.fillRect(0, 0, c.width, c.height);
     for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
-      const lit = Math.random() < litProb;
-      g.fillStyle = lit ? '#fdf3c9' : '#2b3440';
+      g.fillStyle = Math.random() < litProb ? lit : '#20262e';
       g.fillRect(x * cw + 1, y * ch + 1, cw - 2, ch - 2);
     }
     const t = new THREE.CanvasTexture(c);
-    t.anisotropy = 4;
+    t.anisotropy = 4; t.encoding = THREE.sRGBEncoding;
     return t;
   }
+  // A small palette of reusable fabric facades (single GPU upload each)
+  const FABRIC = [
+    facadeTex('#8f96a0', '#dfe6ee', 20, 26, 0.16),
+    facadeTex('#a49a86', '#efe6cf', 20, 26, 0.14),
+    facadeTex('#7f8890', '#d7e2ec', 20, 26, 0.18),
+    facadeTex('#9a9384', '#e8ddc4', 20, 26, 0.13),
+    facadeTex('#8a9098', '#e6eef6', 20, 26, 0.15),
+    facadeTex('#b0a894', '#efe8d6', 20, 26, 0.12),
+  ].map(t => new THREE.MeshStandardMaterial({ map: t, roughness: 0.55, metalness: 0.2, envMapIntensity: 0.5 }));
 
-  const GAP = 4.2;
-  const roofMat = new THREE.MeshStandardMaterial({ color: 0x555a5f, roughness: 0.9 });
+  // ---------- Basic box building ----------
+  function box(cx, cz, w, d, h, mat, cast, y0, parent) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(cx, (y0 || 0) + h / 2, cz);
+    m.castShadow = !!cast; m.receiveShadow = true;
+    (parent || scene).add(m); return m;
+  }
 
-  function addBuilding(cx, cz, w, d, h, base, litProb, tint) {
+  // ---------- Ground with street map + Castellana ----------
+  (function ground() {
+    const EX = 3000, EZ = 3600, CZ = -1100;            // covers core + CTBA to the north
+    const c = document.createElement('canvas'); c.width = 2048; c.height = 2048;
+    const g = c.getContext('2d');
+    g.fillStyle = '#9a988c'; g.fillRect(0, 0, 2048, 2048);
+    // world → texture px
+    const px = (x) => (x + EX) / (2 * EX) * 2048;
+    const py = (z) => (z - (CZ - EZ)) / (2 * EZ) * 2048;
+    // faint block grid (streets)
+    g.strokeStyle = '#83817a'; g.lineWidth = 6;
+    for (let x = -EX; x <= EX; x += 95) { g.beginPath(); g.moveTo(px(x), 0); g.lineTo(px(x), 2048); g.stroke(); }
+    for (let z = CZ - EZ; z <= CZ + EZ; z += 95) { g.beginPath(); g.moveTo(0, py(z)); g.lineTo(2048, py(z)); g.stroke(); }
+    // Paseo de la Castellana (wide, N–S, slight offset east)
+    g.strokeStyle = '#33363b'; g.lineWidth = px(60) - px(0);
+    g.beginPath(); g.moveTo(px(35), py(CZ - EZ)); g.lineTo(px(15), py(CZ + EZ)); g.stroke();
+    // central green median
+    g.strokeStyle = '#5f7d46'; g.lineWidth = 6;
+    g.beginPath(); g.moveTo(px(35), py(CZ - EZ)); g.lineTo(px(15), py(CZ + EZ)); g.stroke();
+    // a couple of parks (green)
+    g.fillStyle = '#5f7d46';
+    g.fillRect(px(-260), py(120), px(60) - px(-60), py(340) - py(120));   // near Nuevos Ministerios
+    g.fillRect(px(260), py(-500), px(120) - px(0), py(-300) - py(-500));
+    const tex = new THREE.CanvasTexture(c); tex.anisotropy = 8; tex.encoding = THREE.sRGBEncoding;
+    const grd = new THREE.Mesh(new THREE.PlaneGeometry(2 * EX, 2 * EZ), new THREE.MeshStandardMaterial({ map: tex, roughness: 1 }));
+    grd.rotation.x = -Math.PI / 2; grd.position.set(0, 0, CZ); grd.receiveShadow = true;
+    scene.add(grd);
+  })();
+
+  // ---------- Rounded-corner tower (Torre Picasso style) ----------
+  function roundedTower(x, z, w, d, h, r, sideMat, capMat) {
     const g = new THREE.Group();
-    const walls = [
-      { rot: 0,            len: w, off: [0, 0, d / 2] },
-      { rot: Math.PI,      len: w, off: [0, 0, -d / 2] },
-      { rot: Math.PI / 2,  len: d, off: [w / 2, 0, 0] },
-      { rot: -Math.PI / 2, len: d, off: [-w / 2, 0, 0] },
-    ];
-    walls.forEach(wl => {
-      const cols = Math.max(2, Math.round(wl.len / GAP));
-      const rows = Math.max(3, Math.round(h / GAP));
-      const mat = new THREE.MeshStandardMaterial({
-        map: winTexture(cols, rows, base, litProb),
-        color: tint || 0xffffff, roughness: 0.55, metalness: 0.15,
-      });
-      const wall = new THREE.Mesh(new THREE.PlaneGeometry(wl.len, h), mat);
-      wall.position.set(wl.off[0], h / 2, wl.off[2]);
-      wall.rotation.y = wl.rot;
-      wall.castShadow = true; wall.receiveShadow = true;
-      g.add(wall);
+    box(0, 0, w, d, h, sideMat, true, 0, g);                   // core
+    const cyl = new THREE.CylinderGeometry(r, r, h, 16);
+    [[w / 2, d / 2], [-w / 2, d / 2], [w / 2, -d / 2], [-w / 2, -d / 2]].forEach(p => {
+      const m = new THREE.Mesh(cyl, sideMat); m.position.set(p[0], h / 2, p[1]);
+      m.castShadow = true; g.add(m);
     });
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(w, 1.2, d), roofMat);
-    roof.position.y = h; roof.castShadow = true;
-    g.add(roof);
-    g.position.set(cx, 0, cz);
-    scene.add(g);
-    return g;
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(w + 2 * r, 2, d + 2 * r), capMat || matRoof);
+    cap.position.y = h + 1; cap.castShadow = true; g.add(cap);
+    g.position.set(x, 0, z); scene.add(g); return g;
+  }
+  function antenna(g, h, top) {
+    const a = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 1.2, top, 6), matDark);
+    a.position.y = h + top / 2; g.add(a);
   }
 
-  // ---- Roads ----
-  const roadMat = new THREE.MeshStandardMaterial({ color: 0x33363b, roughness: 0.95 });
-  function road(cx, cz, w, l, rotY = 0) {
-    const r = new THREE.Mesh(new THREE.PlaneGeometry(w, l), roadMat);
-    r.rotation.x = -Math.PI / 2; r.rotation.z = rotY;
-    r.position.set(cx, 0.05, cz); r.receiveShadow = true;
-    scene.add(r);
-  }
-  road(0, 0, 30, 620); // Paseo de la Castellana
-  const median = new THREE.Mesh(new THREE.BoxGeometry(2, 0.6, 620),
-    new THREE.MeshStandardMaterial({ color: 0x4c6b3a, roughness: 1 }));
-  median.position.set(0, 0.3, 0); scene.add(median);
-  const dashMat = new THREE.MeshStandardMaterial({ color: 0xd9d4b0, emissive: 0x222018 });
-  for (let z = -300; z <= 300; z += 14) {
-    for (const lx of [-7.5, 7.5]) {
-      const d = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 6), dashMat);
-      d.rotation.x = -Math.PI / 2; d.position.set(lx, 0.07, z); scene.add(d);
-    }
-  }
-  road(0, 150, 22, 500, Math.PI / 2);
-  road(0, -150, 20, 460, Math.PI / 2);
-  road(0, 30, 16, 420, Math.PI / 2);
-
-  // ===== BERNABÉU =====
+  // ================= ESTADIO SANTIAGO BERNABÉU =================
   (function bernabeu() {
-    const cx = -34, cz = -195, ax = 34, az = 44, H = 22;
+    const [x, z] = proj(40.4531, -3.68835);
+    const ax = 118, az = 100, H = 52;                 // half-axes (m) + height
     const g = new THREE.Group();
-    const pitch = new THREE.Mesh(new THREE.CircleGeometry(1, 48),
-      new THREE.MeshStandardMaterial({ color: 0x2f7d33, roughness: 1 }));
-    pitch.rotation.x = -Math.PI / 2; pitch.scale.set(ax * 0.55, az * 0.55, 1);
-    pitch.position.y = 0.3; g.add(pitch);
-    const bowl = new THREE.Mesh(
-      new THREE.CylinderGeometry(1, 0.6, H * 0.8, 56, 1, true),
-      new THREE.MeshStandardMaterial({ color: 0x30343b, roughness: 0.9, side: THREE.DoubleSide }));
-    bowl.scale.set(ax * 0.86, 1, az * 0.86);
-    bowl.position.y = H * 0.4; g.add(bowl);
-    const fc = document.createElement('canvas');
-    fc.width = 512; fc.height = 64;
-    const fg = fc.getContext('2d');
-    for (let x = 0; x < 512; x++) {
-      const v = 150 + Math.sin(x * 0.35) * 55 + Math.sin(x * 0.09) * 25;
-      fg.fillStyle = 'rgb(' + v + ',' + (v + 6) + ',' + (v + 14) + ')';
-      fg.fillRect(x, 0, 1, 64);
+    // pitch + lower bowl
+    const pitch = new THREE.Mesh(new THREE.CircleGeometry(1, 48), matPitch);
+    pitch.rotation.x = -Math.PI / 2; pitch.scale.set(ax * 0.5, az * 0.5, 1); pitch.position.y = 1; g.add(pitch);
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(1, 0.62, H * 0.72, 64, 1, true),
+      new THREE.MeshStandardMaterial({ color: 0x2b2e34, roughness: 0.9, side: THREE.DoubleSide, envMapIntensity: 0.3 }));
+    bowl.scale.set(ax * 0.9, 1, az * 0.9); bowl.position.y = H * 0.36; g.add(bowl);
+    // metallic louvered outer skin (vertical panels around an ellipse)
+    const panelMat = new THREE.MeshStandardMaterial({ color: 0xd7dbe0, metalness: 0.9, roughness: 0.32, envMapIntensity: 1.3, side: THREE.DoubleSide });
+    const N = 96;
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      const rx = ax, rz = az;
+      const wob = 1 + 0.06 * Math.sin(a * 8);          // subtle wave of the real façade
+      const px2 = Math.cos(a) * rx * wob, pz = Math.sin(a) * rz * wob;
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(1.4, H, (2 * Math.PI * ((rx + rz) / 2)) / N * 0.9), panelMat);
+      panel.position.set(px2, H / 2, pz);
+      panel.rotation.y = -a + Math.PI / 2;
+      panel.castShadow = true; g.add(panel);
     }
-    const facadeTex = new THREE.CanvasTexture(fc);
-    const facade = new THREE.Mesh(
-      new THREE.CylinderGeometry(1, 1, H, 72, 1, true),
-      new THREE.MeshStandardMaterial({ map: facadeTex, color: 0xdfe4ea, metalness: 0.85, roughness: 0.3, side: THREE.DoubleSide }));
-    facade.scale.set(ax, 1, az); facade.position.y = H / 2;
-    facade.castShadow = true; g.add(facade);
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(1, 0.06, 12, 72),
-      new THREE.MeshStandardMaterial({ color: 0xeef1f4, metalness: 0.9, roughness: 0.2 }));
-    rim.rotation.x = Math.PI / 2; rim.scale.set(ax, az, 3); rim.position.y = H; g.add(rim);
-    const roof = new THREE.Mesh(new THREE.RingGeometry(0.58, 1.0, 64),
-      new THREE.MeshStandardMaterial({ color: 0xe8ebee, metalness: 0.7, roughness: 0.35, side: THREE.DoubleSide }));
-    roof.rotation.x = -Math.PI / 2; roof.scale.set(ax, az, 1);
-    roof.position.y = H + 0.5; roof.castShadow = true; g.add(roof);
-    g.position.set(cx, 0, cz);
-    scene.add(g);
+    // rounded top rim + roof ring
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(1, 0.05, 10, 80),
+      new THREE.MeshStandardMaterial({ color: 0xeef1f4, metalness: 0.9, roughness: 0.2, envMapIntensity: 1.4 }));
+    rim.rotation.x = Math.PI / 2; rim.scale.set(ax * 1.02, az * 1.02, 6); rim.position.y = H; g.add(rim);
+    const roof = new THREE.Mesh(new THREE.RingGeometry(0.6, 1.02, 80),
+      new THREE.MeshStandardMaterial({ color: 0xdfe3e7, metalness: 0.6, roughness: 0.4, side: THREE.DoubleSide, envMapIntensity: 0.9 }));
+    roof.rotation.x = -Math.PI / 2; roof.scale.set(ax, az, 1); roof.position.y = H + 1; roof.castShadow = true; g.add(roof);
+    g.position.set(x, 0, z); scene.add(g);
   })();
 
-  // ===== AZCA + TORRE PICASSO =====
-  addBuilding(-72, -70, 26, 26, 96, '#e7e3d6', 0.35, 0xf3efe4); // Torre Picasso
-  addBuilding(-46, -96, 20, 20, 70, '#c9d2d8', 0.4, 0xdfe8ee);  // Torre Europa
-  addBuilding(-40, -50, 22, 22, 60, '#b9c2c9', 0.45);
-  addBuilding(-78, -34, 24, 20, 52, '#cfc9bb', 0.4);
-  addBuilding(-52, -20, 18, 26, 44, '#c3ccd2', 0.5);
-  addBuilding(48, -70, 40, 34, 20, '#b7a98e', 0.3);
+  // ================= AZCA =================
+  // Torre Picasso (157 m) — blanca, esquinas redondeadas
+  (function () {
+    const [x, z] = proj(40.44694, -3.69235);
+    const pMat = new THREE.MeshStandardMaterial({ map: facadeTex('#e7e3d8', '#fdfbf2', 4, 40, 0.1), color: 0xf1eee4, roughness: 0.5, metalness: 0.08, envMapIntensity: 0.7 });
+    const g = roundedTower(x, z, 36, 36, 157, 6, pMat, matWhite);
+    antenna(g, 157, 14);
+  })();
+  // Torre Europa (121 m) — cristal + corona de celosía
+  (function () {
+    const [x, z] = proj(40.44793, -3.69061);
+    const g = new THREE.Group();
+    box(0, 0, 34, 30, 121, glass(0x9fb7c9, 0.12), true, 0, g);
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(36, 10, 32), matWhite); crown.position.y = 126; crown.castShadow = true; g.add(crown);
+    g.position.set(x, 0, z); scene.add(g); antenna(g, 131, 12);
+  })();
+  // Torre BBVA / Castellana 81 (Oíza, 107 m) — bandas horizontales rojizas + cristal
+  (function () {
+    const [x, z] = proj(40.4465, -3.6904);
+    const bMat = new THREE.MeshStandardMaterial({ map: facadeTex('#8a4a3a', '#cfe0ea', 10, 34, 0.2), roughness: 0.5, metalness: 0.15, envMapIntensity: 0.6 });
+    const g = new THREE.Group();
+    box(0, 0, 44, 22, 107, bMat, true, 0, g);
+    // rounded ends
+    const cyl = new THREE.CylinderGeometry(11, 11, 107, 20);
+    [-22, 22].forEach(sx => { const m = new THREE.Mesh(cyl, bMat); m.position.set(sx, 107 / 2, 0); m.castShadow = true; g.add(m); });
+    box(0, 0, 46, 22, 3, matRoof, true, 107, g);
+    g.position.set(x, 0, z); scene.add(g);
+  })();
+  // Torre Titania / El Corte Inglés (104 m) — cristal oscuro
+  (function () {
+    const [x, z] = proj(40.4456, -3.6920);
+    const g = roundedTower(x, z, 30, 30, 104, 5, glass(0x6b7c88, 0.14), matDark);
+    antenna(g, 104, 8);
+  })();
+  // El Corte Inglés (bloque comercial bajo)
+  (function () { const [x, z] = proj(40.4462, -3.6912); box(x, z, 70, 55, 26, matConcrete, true); })();
 
-  // ===== NUEVOS MINISTERIOS =====
+  // ================= NUEVOS MINISTERIOS =================
   (function nuevosMinisterios() {
-    const cx = -55, cz = 110;
-    addBuilding(cx, cz, 30, 120, 30, '#c7b191', 0.25, 0xd8c4a4);
-    addBuilding(cx - 2, cz - 40, 20, 20, 52, '#cbb694', 0.3, 0xdcc7a6);
-    addBuilding(cx - 2, cz + 40, 20, 20, 52, '#cbb694', 0.3, 0xdcc7a6);
-    addBuilding(cx + 26, cz, 16, 90, 22, '#c2ad8c', 0.25);
-    const colMat = new THREE.MeshStandardMaterial({ color: 0xd8c9ab, roughness: 0.9 });
-    for (let z = -52; z <= 52; z += 8) {
-      const col = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 16, 12), colMat);
-      col.position.set(cx + 36, 8, cz + z); col.castShadow = true; scene.add(col);
-    }
+    const [cx, cz] = proj(40.4452, -3.6928);
+    const stoneWin = new THREE.MeshStandardMaterial({ map: facadeTex('#c6b391', '#efe4cc', 16, 9, 0.12), color: 0xd8c6a6, roughness: 0.7, metalness: 0.05, envMapIntensity: 0.4 });
+    // U-shaped ministerial blocks around a courtyard (long axis N–S)
+    box(cx, cz - 70, 150, 26, 34, stoneWin, true);        // north wing
+    box(cx, cz + 70, 150, 26, 34, stoneWin, true);        // south wing
+    box(cx - 62, cz, 26, 120, 34, stoneWin, true);        // west wing
+    box(cx + 46, cz, 20, 150, 30, stoneWin, true);        // east wing (toward Castellana)
+    // arcade colonnade facing the avenue
+    const colMat = new THREE.MeshStandardMaterial({ color: 0xd6c7a9, roughness: 0.85 });
+    const colGeo = new THREE.CylinderGeometry(1.5, 1.5, 18, 12);
+    for (let z = -66; z <= 66; z += 7) { const c = new THREE.Mesh(colGeo, colMat); c.position.set(cx + 58, 9, cz + z); c.castShadow = true; scene.add(c); }
+    // clock/central tower
+    box(cx, cz, 16, 16, 58, stoneWin, true);
+    box(cx, cz, 12, 12, 8, matWhite, true, 58);
   })();
 
-  // ===== GENERIC CITY FABRIC =====
-  const palette = ['#b7bcc2', '#c9c2b4', '#a9b2b8', '#cabfa8', '#b0a894', '#bcc4c9'];
-  function fillBlock(x0, z0, x1, z1, count, minH, maxH) {
-    for (let i = 0; i < count; i++) {
-      const x = x0 + Math.random() * (x1 - x0);
-      const z = z0 + Math.random() * (z1 - z0);
-      if (Math.abs(x) < 20) continue;
-      const w = 16 + Math.random() * 18;
-      const d = 16 + Math.random() * 18;
-      const h = minH + Math.random() * (maxH - minH);
-      addBuilding(x, z, w, d, h, palette[(Math.random() * palette.length) | 0], 0.25 + Math.random() * 0.3);
-    }
-  }
-  fillBlock(30, -300, 300, -20, 16, 22, 60);
-  fillBlock(-300, -300, -95, -20, 10, 22, 55);
-  fillBlock(30, 20, 300, 300, 18, 20, 55);
-  fillBlock(-300, 160, -95, 300, 12, 20, 50);
+  // ================= CUATRO TORRES (CTBA), ~3.2 km al norte =================
+  function ctbaBase(lat, lon) { return proj(lat, lon); }
+  // Torre de Cristal (249 m) — cristal, remate escalonado
+  (function () {
+    const [x, z] = ctbaBase(40.47617, -3.68760); const g = new THREE.Group();
+    box(0, 0, 45, 45, 210, glass(0xbfe0ea, 0.06), true, 0, g);
+    box(0, 0, 36, 36, 39, glass(0xbfe0ea, 0.06), true, 210, g);
+    g.position.set(x, 0, z); scene.add(g);
+  })();
+  // Torre Cepsa / Foster (248 m) — dos núcleos laterales, hueco arriba
+  (function () {
+    const [x, z] = ctbaBase(40.47530, -3.68840); const g = new THREE.Group();
+    const cMat = glass(0xd7dde2, 0.14);
+    box(-22, 0, 10, 48, 248, cMat, true, 0, g);
+    box(22, 0, 10, 48, 248, cMat, true, 0, g);
+    box(0, 0, 34, 48, 150, glass(0x9fb0bc, 0.1), true, 0, g);   // glazed body between cores
+    g.position.set(x, 0, z); scene.add(g);
+  })();
+  // Torre PwC / Sacyr (236 m) — cuerpo + remate cilíndrico (hotel)
+  (function () {
+    const [x, z] = ctbaBase(40.47430, -3.68900); const g = new THREE.Group();
+    box(0, 0, 40, 40, 200, glass(0xcfd6da, 0.12), true, 0, g);
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(21, 21, 36, 24), glass(0xbcc6cc, 0.1)); top.position.y = 218; top.castShadow = true; g.add(top);
+    g.position.set(x, 0, z); scene.add(g);
+  })();
+  // Torre Espacio (224 m) — cristal con arista curva
+  (function () {
+    const [x, z] = ctbaBase(40.47350, -3.68960); const g = new THREE.Group();
+    box(0, 0, 44, 44, 224, glass(0xaecfe0, 0.08), true, 0, g);
+    const curve = new THREE.Mesh(new THREE.CylinderGeometry(22, 22, 224, 24, 1, false, 0, Math.PI / 2), glass(0xaecfe0, 0.08));
+    curve.position.set(-22, 112, -22); curve.castShadow = true; g.add(curve);
+    g.position.set(x, 0, z); scene.add(g);
+  })();
+  // Torre Caleido (181 m) — dos "patas" + puente superior (diapasón)
+  (function () {
+    const [x, z] = ctbaBase(40.47690, -3.68680); const g = new THREE.Group();
+    const cMat = glass(0xd9dee2, 0.13);
+    box(-13, 0, 12, 26, 181, cMat, true, 0, g);
+    box(13, 0, 12, 26, 181, cMat, true, 0, g);
+    box(0, 0, 40, 26, 24, cMat, true, 157, g);         // top bridge
+    box(0, 0, 60, 34, 20, matConcrete, true, 0, g);    // podium (IE University)
+    g.position.set(x, 0, z); scene.add(g);
+  })();
 
-  // ---- Trees ----
+  // ================= CITY FABRIC (Ensanche blocks) =================
+  (function fabric() {
+    const skip = [                         // [x,z,radius] keep-clear zones (landmarks/avenue/parks)
+      [180, -678, 200], [0, 0, 260], [-30, 222, 260], [0, -1100, 260],
+      [0, 0, 90, 'ave'],
+    ];
+    function blocked(x, z) {
+      if (Math.abs(x - (30 - z * 0.006)) < 55) return true;   // the Castellana corridor
+      for (const s of skip) { const dx = x - s[0], dz = z - s[1]; if (dx * dx + dz * dz < s[2] * s[2]) return true; }
+      return false;
+    }
+    let n = 0;
+    for (let gx = -1200; gx <= 1300; gx += 95) {
+      for (let gz = -2400; gz <= 500; gz += 95) {
+        const x = gx + (Math.random() - 0.5) * 14, z = gz + (Math.random() - 0.5) * 14;
+        if (blocked(x, z)) continue;
+        // thin out toward the far north (between core and CTBA)
+        if (z < -800 && Math.random() < 0.72) continue;
+        const w = 46 + Math.random() * 26, d = 46 + Math.random() * 26;
+        const h = 18 + Math.random() * 26;
+        const b = box(x, z, w, d, h, FABRIC[(Math.random() * FABRIC.length) | 0], false);
+        b.receiveShadow = true;
+        if (Math.random() < 0.2) box(x + (Math.random() - .5) * w * .4, z + (Math.random() - .5) * d * .4, 6, 6, 3 + Math.random() * 5, matRoof, false, h);
+        n++;
+      }
+    }
+    // console note
+    return n;
+  })();
+
+  // ---------- Trees + median along the Castellana core ----------
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5b3f2a });
   const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f7d3a, roughness: 1 });
-  function tree(x, z) {
-    const t = new THREE.Group();
-    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 6, 6), trunkMat);
-    tr.position.y = 3; t.add(tr);
-    const lf = new THREE.Mesh(new THREE.SphereGeometry(3.4, 8, 7), leafMat);
-    lf.position.y = 7.5; lf.castShadow = true; t.add(lf);
-    t.position.set(x, 0, z); scene.add(t);
+  const trunkGeo = new THREE.CylinderGeometry(0.6, 0.9, 8, 6), leafGeo = new THREE.SphereGeometry(4.2, 8, 7);
+  for (let z = 300; z >= -760; z -= 26) {
+    const cx = 30 - z * 0.006;
+    [-30, 30].forEach(off => {
+      const t = new THREE.Group();
+      const tr = new THREE.Mesh(trunkGeo, trunkMat); tr.position.y = 4; t.add(tr);
+      const lf = new THREE.Mesh(leafGeo, leafMat); lf.position.y = 9.5; lf.castShadow = true; t.add(lf);
+      t.position.set(cx + off, 0, z); scene.add(t);
+    });
   }
-  for (let z = -300; z <= 300; z += 24) { tree(-17, z); tree(17, z); }
 
-  // ---- Cars ----
-  const carColors = [0xd94f4f, 0x4f7fd9, 0xe8e8e8, 0x2a2a2a, 0xe0c23a, 0x3aa35a];
+  // ---------- Cars on the Castellana ----------
+  const carColors = [0xd94f4f, 0x4f7fd9, 0xf0f0f0, 0x1e1e1e, 0xe0c23a, 0x3aa35a];
+  const carGeo = new THREE.BoxGeometry(3.4, 2.4, 7);
   const cars = [];
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < 40; i++) {
     const dir = Math.random() < 0.5 ? 1 : -1;
-    const lane = dir > 0 ? (Math.random() < 0.5 ? 4 : 10) : (Math.random() < 0.5 ? -4 : -10);
-    const car = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 6),
-      new THREE.MeshStandardMaterial({ color: carColors[(Math.random() * carColors.length) | 0], metalness: 0.4, roughness: 0.4 }));
-    car.position.set(lane, 1.2, -300 + Math.random() * 600);
+    const lane = dir > 0 ? (Math.random() < .5 ? 6 : 16) : (Math.random() < .5 ? -6 : -16);
+    const car = new THREE.Mesh(carGeo, new THREE.MeshStandardMaterial({ color: carColors[(Math.random() * 6) | 0], metalness: 0.5, roughness: 0.35, envMapIntensity: 0.8 }));
     car.castShadow = true;
-    car.userData = { dir: dir, speed: 0.6 + Math.random() * 0.9 };
+    car.userData = { dir, lane, speed: 1.0 + Math.random() * 1.6, z: -760 + Math.random() * 1060 };
     scene.add(car); cars.push(car);
   }
 
-  // ---- Clouds ----
-  const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
-  for (let i = 0; i < 10; i++) {
-    const cl = new THREE.Group();
-    for (let j = 0; j < 4; j++) {
-      const p = new THREE.Mesh(new THREE.SphereGeometry(10 + Math.random() * 8, 7, 6), cloudMat);
-      p.position.set(j * 12 - 18 + Math.random() * 6, Math.random() * 4, Math.random() * 8);
-      cl.add(p);
-    }
-    cl.position.set(-350 + Math.random() * 700, 180 + Math.random() * 60, -350 + Math.random() * 700);
-    scene.add(cl);
-  }
+  // ---------- Resize / UI ----------
+  function resize() { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight, false); }
+  addEventListener('resize', resize); resize(); home();
 
-  // ---- Resize ----
-  function resize() {
-    const w = innerWidth, h = innerHeight;
-    camera.aspect = w / h; camera.updateProjectionMatrix();
-    renderer.setSize(w, h, false);
-  }
-  addEventListener('resize', resize);
-  resize();
-  home();
-
-  // ---- UI buttons ----
   document.getElementById('recenter').onclick = home;
-  let spin = false;
-  const spinBtn = document.getElementById('spin');
-  spinBtn.onclick = function () {
-    spin = !spin;
-    controls.autoRotate = spin;
-    controls.autoRotateSpeed = 0.6;
-    spinBtn.classList.toggle('on', spin);
-  };
-  // hide hint after first interaction
+  let spin = false; const spinBtn = document.getElementById('spin');
+  spinBtn.onclick = () => { spin = !spin; controls.autoRotate = spin; controls.autoRotateSpeed = 0.5; spinBtn.classList.toggle('on', spin); };
   const hint = document.getElementById('hint');
-  ['pointerdown', 'touchstart', 'wheel'].forEach(ev =>
-    canvas.addEventListener(ev, () => hint && hint.classList.add('hide'), { once: true, passive: true }));
+  ['pointerdown', 'touchstart', 'wheel'].forEach(ev => canvas.addEventListener(ev, () => hint && hint.classList.add('hide'), { once: true, passive: true }));
 
-  // ---- Loop ----
+  // ---------- Loop ----------
   function animate() {
     requestAnimationFrame(animate);
     for (const c of cars) {
-      c.position.z += c.userData.dir * c.userData.speed;
-      if (c.position.z > 305) c.position.z = -305;
-      if (c.position.z < -305) c.position.z = 305;
+      c.userData.z += c.userData.dir * c.userData.speed;
+      if (c.userData.z > 300) c.userData.z = -760;
+      if (c.userData.z < -760) c.userData.z = 300;
+      const cx = 30 - c.userData.z * 0.006;
+      c.position.set(cx + c.userData.lane, 1.4, c.userData.z);
     }
     controls.update();
     renderer.render(scene, camera);
