@@ -30,9 +30,37 @@ por PMREM), tone mapping ACES y niebla atmosférica para la lejanía.
 - 🌳 Paseo de la Castellana con mediana, coches en movimiento, arbolado, base
   cartográfica con trama de calles, sombras y luz de mediodía.
 
+## Dos versiones
+
+| Fichero | Qué es | Conexión |
+|---------|--------|----------|
+| `index.html` | Maqueta geométrica con datos reales (offline). | Ninguna. Funciona sin internet. |
+| `earth.html` | **Google Earth fotorrealista** (Photorealistic 3D Tiles). | Tu navegador se conecta a Google. |
+
+### `earth.html` — fotorrealista (Google Earth)
+
+Muestra la ciudad real con la fotogrametría de Google. **La conexión ocurre en tu
+dispositivo, no en el servidor** que generó estos ficheros. Requiere:
+
+1. Una **API key de Google Maps Platform** con el **Map Tiles API** habilitado
+   (consola de Google Cloud → APIs de Maps → *Map Tiles API* → Credenciales →
+   Crear clave). Tiene capa gratuita.
+2. Servir la página desde un origen web (no `file://`), porque Google exige un
+   `Origin` válido por CORS. Lo más sencillo es **GitHub Pages**:
+   *Settings → Pages → Deploy from a branch →* elige esta rama y la carpeta raíz.
+   Luego abre `…/madrid-3d/earth.html` en Safari.
+
+La clave se pide en pantalla la primera vez y se guarda **solo en tu móvil**
+(`localStorage`); nunca se sube al repositorio. Doble toque en el título para
+borrarla. Motor: [CesiumJS](https://cesium.com) cargado desde CDN por tu navegador.
+
+> ⚠️ Esta versión **no** funciona como "artifact" publicado de Claude: esas
+> páginas bloquean por seguridad cualquier host externo, incluido Google.
+
 ## Cómo usarlo
 
-Abre `index.html` en cualquier navegador moderno (Safari, Chrome…).
+Abre `index.html` en cualquier navegador moderno (Safari, Chrome…), o sirve
+`earth.html` por web para la versión fotorrealista (ver arriba).
 
 ### Controles
 

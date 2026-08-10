@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b1622">
+<title>Madrid · Google Earth 3D</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.121/Build/Cesium/Widgets/widgets.css">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1622;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none; }
+  #c { position: fixed; inset: 0; }
+  #c canvas { touch-action: none; }
+  /* Ocultamos el "crédito" flotante de Cesium para ganar pantalla (los créditos siguen en pantalla completa) */
+  .cesium-widget-credits { display: none !important; }
+
+  #title { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 14px; z-index: 5;
+    color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.6); pointer-events: none; }
+  #title b { font-size: 16px; } #title span { display: block; font-size: 11px; opacity: .85; }
+
+  #ui { position: fixed; z-index: 5; left: 50%; transform: translateX(-50%);
+    bottom: max(16px, env(safe-area-inset-bottom)); display: flex; gap: 8px; flex-wrap: wrap;
+    justify-content: center; max-width: 96vw; }
+  #ui button { border: none; border-radius: 999px; padding: 10px 14px; font-size: 13px; color: #fff;
+    background: rgba(15,25,38,.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 14px rgba(0,0,0,.35); cursor: pointer; }
+  #ui button:active { transform: scale(.94); }
+
+  /* Puerta de la API key */
+  #gate { position: fixed; inset: 0; z-index: 20; background: #0b1622; color: #e8eef5;
+    display: flex; align-items: center; justify-content: center; padding: 24px; }
+  #gate .card { max-width: 460px; width: 100%; background: #12202f; border: 1px solid #23364a;
+    border-radius: 18px; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  #gate h1 { font-size: 19px; margin: 0 0 6px; }
+  #gate p { font-size: 13.5px; line-height: 1.5; color: #b9c6d3; margin: 8px 0; }
+  #gate a { color: #6fb2ff; }
+  #gate input { width: 100%; box-sizing: border-box; margin-top: 10px; padding: 12px 14px;
+    border-radius: 12px; border: 1px solid #2c4157; background: #0d1a27; color: #fff; font-size: 15px; }
+  #gate button { width: 100%; margin-top: 12px; padding: 13px; border: none; border-radius: 12px;
+    background: #2f7ef0; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+  #gate .err { color: #ff8a8a; font-size: 12.5px; min-height: 16px; margin-top: 8px; }
+  #gate .muted { font-size: 11.5px; color: #7f909f; }
+</style>
+</head>
+<body>
+<div id="c"></div>
+
+<div id="title">
+  <b>Madrid · Google Earth 3D</b>
+  <span>Fotorrealista · tiles de Google Photorealistic 3D</span>
+</div>
+
+<div id="ui">
+  <button data-go="castellana">🌆 Vista general</button>
+  <button data-go="bernabeu">🏟️ Bernabéu</button>
+  <button data-go="azca">🏢 Torre Picasso</button>
+  <button data-go="ministerios">🏛️ N. Ministerios</button>
+  <button data-go="ctba">🌇 Cuatro Torres</button>
+</div>
+
+<div id="gate">
+  <div class="card">
+    <h1>🔑 Tu clave de Google Maps</h1>
+    <p>Para mostrar los mapas 3D fotorrealistas, esta página se conecta a Google
+       <b>desde tu propio dispositivo</b>. Necesitas una <b>API key</b> de Google Maps
+       Platform con el <b>Map Tiles API</b> activado.</p>
+    <p class="muted">Se guarda solo en este móvil (localStorage). No se envía a ningún
+       otro sitio ni se sube al repositorio.</p>
+    <input id="keyInput" type="text" inputmode="text" autocomplete="off"
+           placeholder="Pega aquí tu API key (AIza…)">
+    <div class="err" id="gateErr"></div>
+    <button id="gateBtn">Cargar Madrid en 3D</button>
+    <p class="muted" style="margin-top:14px">
+      ¿Cómo obtenerla? Consola de Google Cloud →
+      <a href="https://console.cloud.google.com/google/maps-apis/api-list" target="_blank" rel="noopener">
+      APIs de Maps</a> → habilita <b>Map Tiles API</b> → Credenciales → Crear clave de API.
+    </p>
+  </div>
+</div>
+
+<script>window.CESIUM_BASE_URL = 'https://cdn.jsdelivr.net/npm/cesium@1.121/Build/Cesium/';</script>
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.121/Build/Cesium/Cesium.js"></script>
+<script>
+  const KEY_STORE = 'madrid_gtiles_key';
+
+  // Lugares reales (lon, lat)
+  const PLACES = {
+    castellana:  { lon: -3.6905, lat: 40.4490, h: 1600, pitch: -32, heading: 0 },
+    bernabeu:    { lon: -3.68835, lat: 40.4531, h: 520, pitch: -28, heading: 20 },
+    azca:        { lon: -3.69235, lat: 40.44694, h: 480, pitch: -25, heading: -20 },
+    ministerios: { lon: -3.6928, lat: 40.4452, h: 520, pitch: -30, heading: 10 },
+    ctba:        { lon: -3.6884, lat: 40.4755, h: 900, pitch: -22, heading: 0 },
+  };
+
+  function start(key) {
+    // Evita el warning del token por defecto de Cesium ion (no lo usamos)
+    try { Cesium.Ion.defaultAccessToken = undefined; } catch (e) {}
+    Cesium.GoogleMaps.defaultApiKey = key;
+
+    const viewer = new Cesium.Viewer('c', {
+      baseLayer: false,            // sin imagery de Bing/ion
+      baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false,
+      navigationHelpButton: false, animation: false, timeline: false, fullscreenButton: false,
+      infoBox: false, selectionIndicator: false, requestRenderMode: true, maximumRenderTimeChange: Infinity,
+    });
+    viewer.scene.globe.show = false;                 // los tiles de Google ya traen el terreno
+    viewer.scene.skyAtmosphere.show = true;
+    viewer.scene.fog.enabled = true;
+    viewer.resolutionScale = Math.min(1, window.devicePixelRatio ? 1 : 1);
+
+    (async () => {
+      try {
+        const tileset = await Cesium.createGooglePhotorealistic3DTileset();
+        viewer.scene.primitives.add(tileset);
+        flyTo('castellana', 0);
+      } catch (e) {
+        // clave inválida / API no habilitada / cuota
+        showGate('No se pudieron cargar los tiles. Revisa que la clave sea válida y que el ' +
+                 '"Map Tiles API" esté habilitado. (' + (e && e.message ? e.message : e) + ')');
+      }
+    })();
+
+    function flyTo(name, duration) {
+      const p = PLACES[name]; if (!p) return;
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.h),
+        orientation: {
+          heading: Cesium.Math.toRadians(p.heading || 0),
+          pitch: Cesium.Math.toRadians(p.pitch),
+          roll: 0,
+        },
+        duration: duration == null ? 2 : duration,
+      });
+    }
+    document.querySelectorAll('#ui [data-go]').forEach(b => b.onclick = () => flyTo(b.dataset.go));
+  }
+
+  // ---- Puerta de la API key ----
+  const gate = document.getElementById('gate');
+  const gateErr = document.getElementById('gateErr');
+  const input = document.getElementById('keyInput');
+  function showGate(msg) { gate.style.display = 'flex'; if (msg) gateErr.textContent = msg; }
+  function hideGate() { gate.style.display = 'none'; }
+
+  document.getElementById('gateBtn').onclick = () => {
+    const k = input.value.trim();
+    if (!k) { gateErr.textContent = 'Pega tu API key para continuar.'; return; }
+    localStorage.setItem(KEY_STORE, k);
+    hideGate(); start(k);
+  };
+  // Doble toque en el título borra la clave guardada (por si te equivocas)
+  document.getElementById('title').addEventListener('dblclick', () => {
+    localStorage.removeItem(KEY_STORE); location.reload();
+  });
+
+  const saved = localStorage.getItem(KEY_STORE);
+  if (saved) { hideGate(); start(saved); } else { showGate(); }
+</script>
+</body>
+</html>
