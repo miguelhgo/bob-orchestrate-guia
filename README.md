@@ -27,9 +27,10 @@ de imágenes inline sin peticiones, así que funciona también desde `file://`.)
 - `assets/` — capturas con nombres semánticos, revisadas y saneadas.
 - `coliseo.html` + `coliseo.js` — extra aparte de la guía: mini-juego de acción
   por rondas en vertical (móvil), tributo al estilo de los torneos del Coliseo
-  de Kingdom Hearts. Todo procedural (Three.js local en `vendor/`, cel-shading,
-  magias Fuego/Hielo/Electro/Cura, 3 copas). Sin assets de terceros: los
-  modelos y efectos se generan por código. Necesita servirse por HTTP
+  de Kingdom Hearts. Three.js local en `vendor/`, cel-shading, magias
+  Fuego/Hielo/Electro/Cura y 3 copas. El escenario, los enemigos y los efectos
+  se generan por código; el protagonista es un modelo con esqueleto
+  (ver `assets3d/`). Necesita servirse por HTTP
   (los módulos ES no cargan desde `file://`): en local,
   `python3 -m http.server 8080` y abre `/coliseo.html`.
 - `vendor/` — Three.js r160 (licencia MIT en `vendor/THREE-LICENSE.txt`) más
