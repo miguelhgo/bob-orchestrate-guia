@@ -240,30 +240,82 @@ function buildArena() {
   );
   g.add(sky);
 
-  // suelo de arena con anillos y emblema central
+  // suelo: losetas radiales de piedra arenisca con emblema de laurel y corona
   const floorTex = canvasTex(1024, 1024, (x, w, h) => {
-    x.fillStyle = '#d7b26c'; x.fillRect(0, 0, w, h);
-    for (let i = 0; i < 5200; i++) {
-      x.fillStyle = `rgba(${120 + Math.random() * 80 | 0},${90 + Math.random() * 60 | 0},40,${Math.random() * 0.14})`;
+    const cx = w / 2, cy = h / 2;
+    x.fillStyle = '#dcb572'; x.fillRect(0, 0, w, h);
+    // moteado de arena
+    for (let i = 0; i < 6000; i++) {
+      x.fillStyle = `rgba(${120 + Math.random() * 90 | 0},${88 + Math.random() * 62 | 0},40,${Math.random() * 0.13})`;
       x.fillRect(Math.random() * w, Math.random() * h, 2.4, 2.4);
     }
-    x.strokeStyle = 'rgba(140,100,40,0.5)'; x.lineWidth = 7;
-    for (const r of [150, 260, 380, 470]) {
-      x.beginPath(); x.arc(w / 2, h / 2, r, 0, TAU); x.stroke();
+    // juntas de losetas: anillos + radios
+    x.strokeStyle = 'rgba(146,102,44,0.55)';
+    x.lineWidth = 6;
+    for (const r of [180, 300, 420, 500]) {
+      x.beginPath(); x.arc(cx, cy, r, 0, TAU); x.stroke();
     }
-    // emblema: sol/estrella dorada
-    x.save(); x.translate(w / 2, h / 2);
-    x.fillStyle = 'rgba(214,164,50,0.85)';
-    x.beginPath(); x.arc(0, 0, 90, 0, TAU); x.fill();
-    x.fillStyle = '#d7b26c';
-    x.beginPath(); x.arc(0, 0, 70, 0, TAU); x.fill();
-    x.fillStyle = 'rgba(214,164,50,0.9)';
+    x.lineWidth = 4.5;
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * TAU;
+      x.beginPath();
+      x.moveTo(cx + Math.cos(a) * 180, cy + Math.sin(a) * 180);
+      x.lineTo(cx + Math.cos(a) * 512, cy + Math.sin(a) * 512);
+      x.stroke();
+    }
+    // sombreado sutil por loseta (alterna claridad entre sectores)
+    for (let ring = 0; ring < 3; ring++) {
+      const r0 = [180, 300, 420][ring], r1 = [300, 420, 512][ring];
+      for (let i = 0; i < 20; i++) {
+        if ((i + ring) % 2) continue;
+        const a0 = (i / 20) * TAU, a1 = ((i + 1) / 20) * TAU;
+        x.fillStyle = 'rgba(120,86,38,0.07)';
+        x.beginPath();
+        x.arc(cx, cy, r1, a0, a1);
+        x.arc(cx, cy, r0, a1, a0, true);
+        x.closePath(); x.fill();
+      }
+    }
+    // emblema central
+    x.save(); x.translate(cx, cy);
+    // aro exterior dorado
+    x.strokeStyle = 'rgba(206,152,44,0.95)'; x.lineWidth = 15;
+    x.beginPath(); x.arc(0, 0, 158, 0, TAU); x.stroke();
+    x.lineWidth = 5;
+    x.beginPath(); x.arc(0, 0, 138, 0, TAU); x.stroke();
+    // corona de laurel: hojas a lo largo de dos arcos
+    x.fillStyle = 'rgba(206,152,44,0.9)';
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 11; i++) {
+        const a = Math.PI / 2 + side * (0.45 + i * 0.2);
+        x.save();
+        x.translate(Math.cos(a) * 118, Math.sin(a) * 118);
+        x.rotate(a + side * 0.9);
+        x.beginPath(); x.ellipse(0, 0, 22, 8.5, 0, 0, TAU); x.fill();
+        x.restore();
+      }
+    }
+    // estrella de ocho puntas
+    x.fillStyle = 'rgba(206,152,44,0.85)';
     for (let i = 0; i < 8; i++) {
       x.rotate(TAU / 8);
-      x.beginPath(); x.moveTo(0, -28); x.lineTo(12, -66); x.lineTo(-12, -66); x.closePath(); x.fill();
+      x.beginPath(); x.moveTo(0, -42); x.lineTo(13, -92); x.lineTo(-13, -92); x.closePath(); x.fill();
     }
-    x.beginPath(); x.arc(0, 0, 24, 0, TAU); x.fill();
+    // medallón azul con corona dorada
+    x.fillStyle = '#233163';
+    x.beginPath(); x.arc(0, 0, 46, 0, TAU); x.fill();
+    x.strokeStyle = 'rgba(206,152,44,0.95)'; x.lineWidth = 4;
+    x.beginPath(); x.arc(0, 0, 46, 0, TAU); x.stroke();
+    x.fillStyle = '#e8b93a';
+    x.beginPath();
+    x.moveTo(-26, 14); x.lineTo(-26, -6); x.lineTo(-13, 4); x.lineTo(0, -18);
+    x.lineTo(13, 4); x.lineTo(26, -6); x.lineTo(26, 14); x.closePath(); x.fill();
     x.restore();
+    // viñeta hacia el borde
+    const vg = x.createRadialGradient(cx, cy, 320, cx, cy, 512);
+    vg.addColorStop(0, 'rgba(90,60,20,0)');
+    vg.addColorStop(1, 'rgba(90,60,20,0.32)');
+    x.fillStyle = vg; x.fillRect(0, 0, w, h);
   });
   const floor = new THREE.Mesh(new THREE.CircleGeometry(13, 48), toon(0xffffff, { map: floorTex }));
   floor.rotation.x = -Math.PI / 2;
@@ -291,10 +343,19 @@ function buildArena() {
   wall.position.y = 1.7;
   g.add(wall);
 
-  // cornisa dorada
+  // banda de tela roja en lo alto del muro, con doble cornisa dorada
+  const band = new THREE.Mesh(
+    new THREE.CylinderGeometry(13.58, 13.58, 0.62, 48, 1, true),
+    toon(0x9c2f34, { side: THREE.BackSide })
+  );
+  band.position.y = 3.05;
+  g.add(band);
   const trim = new THREE.Mesh(new THREE.TorusGeometry(13.6, 0.22, 8, 48), toon(0xd6a432));
   trim.rotation.x = Math.PI / 2; trim.position.y = 3.4;
   g.add(trim);
+  const trim2 = new THREE.Mesh(new THREE.TorusGeometry(13.6, 0.12, 8, 48), toon(0xd6a432));
+  trim2.rotation.x = Math.PI / 2; trim2.position.y = 2.72;
+  g.add(trim2);
 
   // gradas superiores (silueta)
   const stands = new THREE.Mesh(
@@ -309,7 +370,7 @@ function buildArena() {
 
   // público: puntitos de color que "animan" en las gradas
   {
-    const N = 260, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+    const N = 380, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
     const palette = [0xffe0b0, 0xb0c8ff, 0xffb0c0, 0xc8ffb0, 0xe6cfff];
     const c = new THREE.Color();
     for (let i = 0; i < N; i++) {
@@ -331,18 +392,22 @@ function buildArena() {
     g.userData.crowd = crowd;
   }
 
-  // columnas
-  const colMat = toon(0xd9c69a), capMat = toon(0xbfa878);
+  // columnas acanaladas con anillos dorados
+  const colMat = toon(0xdfcc9e), capMat = toon(0xc2ab7c), ringMat = toon(0xc79b3e);
   for (let i = 0; i < 10; i++) {
     const a = (i / 10) * TAU + 0.31;
     const col = new THREE.Group();
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 6.4, 10), colMat);
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 6.4, 14), colMat);
     shaft.position.y = 3.2;
     const base = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.5), capMat);
     base.position.y = 0.25;
     const cap = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.5), capMat);
     cap.position.y = 6.4;
-    col.add(shaft, base, cap);
+    const rTop = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.07, 6, 14), ringMat);
+    rTop.rotation.x = Math.PI / 2; rTop.position.y = 5.9;
+    const rBot = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.07, 6, 14), ringMat);
+    rBot.rotation.x = Math.PI / 2; rBot.position.y = 0.62;
+    col.add(shaft, base, cap, rTop, rBot);
     col.position.set(Math.cos(a) * 14.6, 0, Math.sin(a) * 14.6);
     g.add(col);
   }
@@ -395,30 +460,106 @@ function buildArena() {
   gate.position.set(0, 0, -13.1);
   g.add(gate);
 
-  // estatuas doradas de guerreros a los lados de la puerta
+  // estatuas doradas de guerreros que cruzan sus espadas sobre la puerta
   for (const sx of [-1, 1]) {
     const st = new THREE.Group();
-    const gold = toon(0xcfa13a);
-    const body = new THREE.Mesh(new THREE.ConeGeometry(0.85, 2.6, 8), gold);
-    body.position.y = 1.9;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), gold);
-    head.position.y = 3.5;
-    const helm = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.8, 8), gold);
-    helm.position.y = 4.05;
-    const sword = new THREE.Mesh(new THREE.BoxGeometry(0.16, 3.4, 0.16), gold);
-    sword.position.set(sx * 0.9, 2.4, 0.3);
-    sword.rotation.z = sx * -0.5;
-    const ped = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.6, 1.7), toon(0xbfa878));
-    ped.position.y = 0.3;
-    st.add(ped, body, head, helm, sword);
-    st.position.set(sx * 4.6, 0, -12.4);
+    const gold = toon(0xcfa13a), goldDark = toon(0xa87c22);
+    const ped = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.7, 1.9), toon(0xc2ab7c));
+    ped.position.y = 0.35;
+    const ped2 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 1.5), toon(0xdfcc9e));
+    ped2.position.y = 0.85;
+    const body = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2.5, 10), gold);
+    body.position.y = 2.2;
+    const chest = new THREE.Mesh(new THREE.SphereGeometry(0.52, 10, 8), gold);
+    chest.scale.set(1, 0.8, 0.8);
+    chest.position.y = 3.15;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 10, 8), gold);
+    head.position.y = 3.85;
+    const helm = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.6, 8), goldDark);
+    helm.position.y = 4.3;
+    const plume = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), toon(0x9c2f34));
+    plume.scale.set(0.55, 1.5, 1.1);
+    plume.position.set(0, 4.55, -0.05);
+    // escudo redondo en el brazo exterior
+    const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.12, 12), goldDark);
+    shield.rotation.z = Math.PI / 2;
+    shield.position.set(sx * 0.85, 2.7, 0.15);
+    const boss = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), gold);
+    boss.position.set(sx * 0.98, 2.7, 0.15);
+    // brazo interior alzado con espada gigante inclinada hacia el centro
+    const swordG = new THREE.Group();
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.2, 5.4, 0.09), gold);
+    blade.position.y = 2.7;
+    const bladeTip = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.5, 4), gold);
+    bladeTip.position.y = 5.55; bladeTip.rotation.y = Math.PI / 4;
+    const cross = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.14, 0.16), goldDark);
+    cross.position.y = 0.18;
+    swordG.add(blade, bladeTip, cross);
+    swordG.position.set(sx * -0.55, 3.3, 0.28);
+    swordG.rotation.z = sx * 0.62; // se cruzan sobre el centro de la puerta
+    st.add(ped, ped2, body, chest, head, helm, plume, shield, boss, swordG);
+    st.position.set(sx * 4.4, 0, -12.3);
     g.add(st);
   }
 
+  // urnas de barro junto a la puerta
+  for (const sx of [-1, 1]) {
+    const urn = new THREE.Group();
+    const clay = toon(0xb0713f), clayDark = toon(0x8a5730);
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), clay);
+    belly.scale.set(1, 1.25, 1); belly.position.y = 0.55;
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.3, 10), clay);
+    neck.position.y = 1.12;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.06, 6, 12), clayDark);
+    rim.rotation.x = Math.PI / 2; rim.position.y = 1.28;
+    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.3, 0.16, 10), clayDark);
+    foot.position.y = 0.08;
+    urn.add(belly, neck, rim, foot);
+    urn.position.set(sx * 7.2, 0, -10.6);
+    urn.rotation.y = rand(0, TAU);
+    g.add(urn);
+  }
+
+  // sol y nubes de tarde
+  const glowTex = canvasTex(128, 128, (x) => {
+    const gr = x.createRadialGradient(64, 64, 4, 64, 64, 62);
+    gr.addColorStop(0, 'rgba(255,255,255,1)');
+    gr.addColorStop(0.35, 'rgba(255,240,200,0.55)');
+    gr.addColorStop(1, 'rgba(255,240,200,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+  });
+  const sunS = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glowTex, color: 0xffe9b0, transparent: true, depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  }));
+  sunS.position.set(-34, 30, -48);
+  sunS.scale.setScalar(26);
+  g.add(sunS);
+  const cloudTex = canvasTex(256, 128, (x) => {
+    x.fillStyle = 'rgba(255,255,255,0.9)';
+    for (const [cx2, cy2, r] of [[70, 80, 34], [110, 62, 44], [160, 72, 38], [200, 86, 26], [130, 92, 40]]) {
+      x.beginPath(); x.arc(cx2, cy2, r, 0, TAU); x.fill();
+    }
+  });
+  const clouds = [];
+  for (let i = 0; i < 5; i++) {
+    const c = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: cloudTex, transparent: true, opacity: rand(0.35, 0.6), depthWrite: false,
+      color: 0xfff4dc,
+    }));
+    const a = rand(0, TAU);
+    c.position.set(Math.cos(a) * rand(35, 60), rand(16, 30), Math.sin(a) * rand(35, 60));
+    c.scale.set(rand(14, 24), rand(6, 10), 1);
+    c.userData.vx = rand(0.15, 0.5) * (Math.random() < 0.5 ? 1 : -1);
+    clouds.push(c);
+    g.add(c);
+  }
+  g.userData.clouds = clouds;
+
   // braseros con fuego
   const braziers = [];
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * TAU + Math.PI / 4;
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * TAU + Math.PI / 6;
     const br = new THREE.Group();
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.2, 1.5, 8), toon(0x5a4632));
     stem.position.y = 0.75;
@@ -607,92 +748,163 @@ function buildHero() {
   const rig = new THREE.Group(); // lo que rueda/inclina
   root.add(rig);
 
-  const skin = toon(0xf2c9a0), red = toon(0xc0303c), navy = toon(0x2b3a8c),
-    shoe = toon(0xe8b23a), hairM = toon(0x6b4526), white = toon(0xf2f2f2);
+  const skin = toon(0xf2c9a0), jacket = toon(0x2c2c38), redP = toon(0xc0303c),
+    navy = toon(0x30409a), shoe = toon(0xe8b23a), hairM = toon(0x7a5230),
+    glove = toon(0xf2f2f2), gold = toon(0xd6a432), dark = toon(0x1f1f28);
 
-  // piernas
+  // piernas: pantalón azul + zapatones amarillos con correa
   const legL = new THREE.Group(), legR = new THREE.Group();
   for (const [leg, sx] of [[legL, -1], [legR, 1]]) {
-    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.08, 0.34, 8), navy);
-    thigh.position.y = -0.17;
-    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), shoe);
-    foot.scale.set(1, 0.7, 1.6);
-    foot.position.set(0, -0.36, 0.05);
-    leg.add(thigh, foot);
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.085, 0.32, 8), navy);
+    thigh.position.y = -0.16;
+    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.08, 8), dark);
+    cuff.position.y = -0.3;
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.155, 9, 7), shoe);
+    foot.scale.set(1, 0.72, 1.75);
+    foot.position.set(0, -0.365, 0.07);
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.055, 0.1), dark);
+    strap.position.set(0, -0.3, 0.14);
+    strap.rotation.x = 0.5;
+    leg.add(thigh, cuff, foot, strap);
     leg.position.set(sx * 0.12, 0.44, 0);
     rig.add(leg);
   }
 
-  // torso
-  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.5, 10), red);
+  // torso: chaqueta oscura con panel rojo central y capucha
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.27, 0.52, 12), jacket);
   torso.position.y = 0.68;
   rig.add(torso);
-  const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.235, 0.245, 0.09, 10), toon(0x2a2a34));
-  belt.position.y = 0.47;
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.4, 0.1), redP);
+  panel.position.set(0, 0.68, 0.16);
+  rig.add(panel);
+  const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.25, 0.085, 12), dark);
+  belt.position.y = 0.46;
   rig.add(belt);
-  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), white);
-  chest.scale.set(1.2, 1.4, 0.6);
-  chest.position.set(0, 0.72, 0.14);
-  rig.add(chest);
+  const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.03), gold);
+  buckle.position.set(0, 0.46, 0.24);
+  rig.add(buckle);
+  const hood = new THREE.Mesh(new THREE.SphereGeometry(0.15, 9, 7), redP);
+  hood.scale.set(1.25, 0.7, 0.9);
+  hood.position.set(0, 0.97, -0.16);
+  rig.add(hood);
+  // colgante de corona
+  const pendant = new THREE.Mesh(new THREE.OctahedronGeometry(0.045, 0), gold);
+  pendant.position.set(0, 0.85, 0.2);
+  rig.add(pendant);
 
-  // brazos
+  // brazos: manga roja corta, antebrazo con piel y guante blanco
   const armL = new THREE.Group(), armR = new THREE.Group();
   for (const [arm, sx] of [[armL, -1], [armR, 1]]) {
-    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.2, 8), red);
-    sleeve.position.y = -0.1;
-    const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.055, 0.22, 8), skin);
-    fore.position.y = -0.3;
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), skin);
-    hand.position.y = -0.44;
-    arm.add(sleeve, fore, hand);
+    const pad = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), redP);
+    pad.position.y = -0.02;
+    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.18, 8), jacket);
+    sleeve.position.y = -0.12;
+    const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.052, 0.2, 8), skin);
+    fore.position.y = -0.29;
+    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.075, 0.06, 8), dark);
+    cuff.position.y = -0.38;
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.085, 8, 6), glove);
+    hand.position.y = -0.45;
+    arm.add(pad, sleeve, fore, cuff, hand);
     arm.position.set(sx * 0.28, 0.9, 0);
     arm.rotation.z = sx * -0.15;
     rig.add(arm);
   }
 
-  // cabeza grande estilo chibi
+  // cabeza chibi con pelo de mechones grandes barridos
   const head = new THREE.Group();
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), skin);
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.29, 14, 11), skin);
   head.add(skull);
-  // pelo de puntas
-  for (let i = 0; i < 9; i++) {
-    const sp = new THREE.Mesh(new THREE.ConeGeometry(0.1, rand(0.28, 0.44), 6), hairM);
-    const a = (i / 9) * TAU;
-    sp.position.set(Math.cos(a) * 0.17, 0.2 + rand(0, 0.08), Math.sin(a) * 0.17 - 0.04);
-    sp.rotation.x = Math.sin(a) * 0.9 - 0.15;
-    sp.rotation.z = -Math.cos(a) * 0.9;
+  // corona de mechones traseros y laterales, barridos hacia atrás-arriba
+  const spikes = [
+    // [ángulo alrededor, alto, largo, inclinación extra hacia atrás]
+    [0.0, 0.2, 0.5, -0.55], [0.9, 0.2, 0.46, -0.4], [-0.9, 0.2, 0.46, -0.4],
+    [1.8, 0.16, 0.42, -0.15], [-1.8, 0.16, 0.42, -0.15],
+    [2.6, 0.1, 0.4, 0.25], [-2.6, 0.1, 0.4, 0.25], [Math.PI, 0.08, 0.44, 0.5],
+  ];
+  for (const [a, y, len, back] of spikes) {
+    const sp = new THREE.Mesh(new THREE.ConeGeometry(0.115, len, 7), hairM);
+    // nace del cráneo y apunta hacia fuera y arriba
+    const dir = new THREE.Vector3(Math.sin(a) * 0.8, 1.15, -Math.cos(a) * 0.8 + back).normalize();
+    sp.position.set(Math.sin(a) * 0.16, y + 0.13, -Math.cos(a) * 0.16);
+    sp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    sp.position.addScaledVector(dir, len * 0.28);
     head.add(sp);
   }
-  const fringe = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.36, 6), hairM);
-  fringe.position.set(0, 0.14, 0.22); fringe.rotation.x = 1.0;
-  head.add(fringe);
-  // ojos
-  for (const sx of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6),
-      new THREE.MeshBasicMaterial({ color: 0x20242e }));
-    eye.userData.noOutline = true;
-    eye.scale.set(0.8, 1.3, 0.5);
-    eye.position.set(sx * 0.11, 0.02, 0.27);
-    head.add(eye);
+  // flequillo: tres puntas cayendo sobre la frente
+  for (const [sx, len, tilt] of [[-0.13, 0.3, 0.35], [0.02, 0.34, 0.1], [0.15, 0.28, -0.3]]) {
+    const f = new THREE.Mesh(new THREE.ConeGeometry(0.09, len, 6), hairM);
+    const dir = new THREE.Vector3(tilt, -0.55, 0.85).normalize();
+    f.position.set(sx, 0.17, 0.2);
+    f.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    f.position.addScaledVector(dir, len * 0.3);
+    head.add(f);
   }
+  // ojos grandes con brillo
+  for (const sx of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x2a4fa8 }));
+    eye.userData.noOutline = true;
+    eye.scale.set(0.75, 1.35, 0.45);
+    eye.position.set(sx * 0.105, 0.0, 0.255);
+    head.add(eye);
+    const glint = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    glint.userData.noOutline = true;
+    glint.position.set(sx * 0.085, 0.035, 0.29);
+    head.add(glint);
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.02, 0.02), hairM);
+    brow.userData.noOutline = true;
+    brow.position.set(sx * 0.105, 0.1, 0.265);
+    brow.rotation.z = sx * -0.18;
+    head.add(brow);
+  }
+  // boca: sonrisa pequeña
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.016, 0.012),
+    new THREE.MeshBasicMaterial({ color: 0x7c4a3a }));
+  mouth.userData.noOutline = true;
+  mouth.position.set(0, -0.11, 0.27);
+  head.add(mouth);
   head.position.y = 1.24;
   rig.add(head);
 
-  // espada-llave en la mano derecha
+  // espada-llave: guarda cuadrada dorada, dientes de corona y cadena
   const key = new THREE.Group();
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.85, 8), toon(0xcfd6e6));
+  const silver = toon(0xd4dbe8), silverDark = toon(0x9aa6bd);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.82, 10), silver);
   shaft.position.y = 0.42;
-  const tipBar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.3, 0.07), toon(0xcfd6e6));
-  tipBar.position.set(0.12, 0.78, 0);
-  const tooth1 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.07, 0.07), toon(0xcfd6e6));
-  tooth1.position.set(0.06, 0.9, 0);
-  const tooth2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.07, 0.07), toon(0xcfd6e6));
-  tooth2.position.set(0.08, 0.74, 0);
-  const guard = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.035, 6, 12), toon(0xd6a432));
-  guard.position.y = 0.02;
-  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.22, 6), toon(0x2a2a34));
-  grip.position.y = -0.02;
-  key.add(shaft, tipBar, tooth1, tooth2, guard, grip);
+  const shaftCap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), silverDark);
+  shaftCap.position.y = 0.84;
+  // dientes: silueta de corona (tres almenas)
+  const toothBar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 0.055), silver);
+  toothBar.position.set(0.13, 0.72, 0);
+  const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.055, 0.055), silver);
+  t1.position.set(0.075, 0.85, 0);
+  const t2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 0.055), silver);
+  t2.position.set(0.09, 0.72, 0);
+  const t3 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.045, 0.055), silver);
+  t3.position.set(0.1, 0.6, 0);
+  // guarda: marco cuadrado dorado alrededor de la empuñadura
+  const gL = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.36, 0.05), gold);
+  gL.position.set(-0.14, 0.0, 0);
+  const gR = gL.clone(); gR.position.x = 0.14;
+  const gT = new THREE.Mesh(new THREE.BoxGeometry(0.33, 0.045, 0.05), gold);
+  gT.position.set(0, 0.17, 0);
+  const gB = gT.clone(); gB.position.y = -0.17;
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.26, 8), dark);
+  grip.position.y = 0;
+  // cadena con dije
+  const chain = new THREE.Group();
+  for (let i = 0; i < 3; i++) {
+    const link = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.009, 5, 8), silverDark);
+    link.position.y = -0.22 - i * 0.055;
+    link.rotation.y = i * 0.8;
+    chain.add(link);
+  }
+  const charm = new THREE.Mesh(new THREE.OctahedronGeometry(0.04, 0), gold);
+  charm.position.y = -0.41;
+  chain.add(charm);
+  key.add(shaft, shaftCap, toothBar, t1, t2, t3, gL, gR, gT, gB, grip, chain);
   key.position.set(0, -0.46, 0.06);
   key.rotation.x = Math.PI / 2 * 0.9; // apoyada hacia delante
   armR.add(key);
@@ -1827,6 +2039,13 @@ function updateBolts(dt) {
 function updateArena(dt, t) {
   for (const b of arena.userData.banners)
     b.rotation.z = Math.sin(t * 1.6 + b.userData.phase) * 0.06;
+  if (arena.userData.clouds) {
+    for (const c of arena.userData.clouds) {
+      c.position.x += c.userData.vx * dt;
+      if (c.position.x > 65) c.position.x = -65;
+      if (c.position.x < -65) c.position.x = 65;
+    }
+  }
   for (const br of arena.userData.braziers) {
     if (Math.random() < 0.5) {
       const p = br.position;
@@ -1861,13 +2080,20 @@ function updateHUD() {
   for (const [kind, btn] of [['fire', 'btnFire'], ['ice', 'btnIce'], ['thunder', 'btnThunder'], ['cure', 'btnCure']]) {
     const el = $(btn), cd = el.querySelector('.cd');
     const rem = hero.cds[kind];
-    if (rem > 0) { cd.style.display = 'flex'; cd.textContent = rem.toFixed(1); }
-    else cd.style.display = 'none';
+    if (rem > 0) {
+      cd.style.display = 'flex';
+      cd.textContent = rem >= 1 ? Math.ceil(rem) : rem.toFixed(1);
+      cd.style.background =
+        `conic-gradient(rgba(4,7,18,.82) ${(rem / MAGIC[kind].cd) * 360}deg, rgba(4,7,18,0) 0deg)`;
+    } else cd.style.display = 'none';
     el.classList.toggle('nomp', hero.mp < MAGIC[kind].cost);
   }
   const dcd = $('btnDodge').querySelector('.cd');
-  if (hero.dodgeCd > 0.02) { dcd.style.display = 'flex'; dcd.textContent = ''; dcd.style.background = 'rgba(5,8,20,.45)'; }
-  else dcd.style.display = 'none';
+  if (hero.dodgeCd > 0.02) {
+    dcd.style.display = 'flex'; dcd.textContent = '';
+    dcd.style.background =
+      `conic-gradient(rgba(4,7,18,.7) ${(hero.dodgeCd / 0.85) * 360}deg, rgba(4,7,18,0) 0deg)`;
+  } else dcd.style.display = 'none';
   const tag = $('comboTag');
   if (hero.chain >= 4 && Game.state === 'playing') {
     tag.textContent = 'Cadena ×' + hero.chain;

@@ -30,19 +30,29 @@
   #hud.on{display:block}
 
   .bars{position:absolute;top:calc(10px + var(--safe-top));left:12px;right:12px;
-    display:flex;flex-direction:column;gap:5px}
-  .bar{height:16px;border-radius:9px;background:rgba(0,0,0,.55);
-    border:2px solid rgba(255,255,255,.28);overflow:hidden;position:relative;
-    box-shadow:0 2px 8px rgba(0,0,0,.4)}
-  .bar .fill{position:absolute;inset:0;border-radius:7px;transform-origin:left;
+    display:flex;align-items:center;gap:10px}
+  .emblem{width:46px;height:46px;border-radius:50%;flex:none;
+    background:radial-gradient(circle at 32% 26%,#2c3a72,#141b3c 70%);
+    border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;
+    font-size:21px;color:var(--gold);
+    box-shadow:0 3px 10px rgba(0,0,0,.5), inset 0 0 10px rgba(245,197,66,.25),
+      0 0 14px -4px var(--gold)}
+  .barcol{flex:1;display:flex;flex-direction:column;gap:5px}
+  .bar{height:15px;border-radius:9px;background:rgba(4,7,18,.72);
+    border:1.5px solid rgba(245,197,66,.55);overflow:hidden;position:relative;
+    box-shadow:0 2px 8px rgba(0,0,0,.45), inset 0 1px 4px rgba(0,0,0,.6)}
+  .bar .fill{position:absolute;inset:1px;border-radius:7px;transform-origin:left;
     transition:transform .18s ease-out}
+  .bar .fill::after{content:'';position:absolute;left:0;right:0;top:0;height:46%;
+    background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,.05));
+    border-radius:7px 7px 0 0}
   .bar.hp .fill{background:linear-gradient(180deg,#a9ffb4 0%,var(--hp) 45%,var(--hp-dark) 100%)}
   .bar.hp.low .fill{background:linear-gradient(180deg,#ffd2a9 0%,#ff8b3d 45%,#a33c00 100%)}
-  .bar.mp{height:12px;width:78%}
+  .bar.mp{height:11px;width:76%}
   .bar.mp .fill{background:linear-gradient(180deg,#bcdcff 0%,var(--mp) 45%,var(--mp-dark) 100%)}
-  .bar .cap{position:absolute;right:4px;top:50%;transform:translateY(-50%);
-    font-size:9px;font-weight:900;letter-spacing:.08em;color:rgba(255,255,255,.85);
-    text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .bar .cap{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    font-size:8px;font-weight:900;letter-spacing:.12em;color:rgba(255,244,214,.9);
+    text-shadow:0 1px 2px rgba(0,0,0,.9)}
 
   .topline{position:absolute;top:calc(64px + var(--safe-top));left:12px;right:12px;
     display:flex;justify-content:space-between;align-items:flex-start;font-weight:800}
@@ -70,37 +80,37 @@
     background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85),rgba(180,190,220,.55));
     display:none;transform:translate(-50%,-50%);box-shadow:0 3px 10px rgba(0,0,0,.45)}
 
-  /* action cluster */
-  #actions{position:absolute;right:10px;bottom:calc(18px + var(--safe-bottom));
-    width:196px;height:230px;pointer-events:auto}
+  /* action cluster: abanico radial alrededor del botón de ataque */
+  #actions{position:absolute;right:8px;bottom:calc(14px + var(--safe-bottom));
+    width:220px;height:252px;pointer-events:auto}
   .abtn{position:absolute;border-radius:50%;display:flex;flex-direction:column;
     align-items:center;justify-content:center;font-weight:900;color:#fff;
-    border:2.5px solid rgba(255,255,255,.5);text-shadow:0 1px 3px rgba(0,0,0,.7);
-    box-shadow:0 4px 14px rgba(0,0,0,.5), inset 0 0 14px rgba(255,255,255,.15);
-    touch-action:none;overflow:hidden}
-  .abtn:active{transform:scale(.94)}
-  .abtn .ico{font-size:22px;line-height:1}
-  .abtn .lbl{font-size:9px;letter-spacing:.06em;margin-top:1px}
-  .abtn .cost{position:absolute;bottom:4px;right:0;left:0;text-align:center;font-size:9px;
-    font-weight:900;color:#dcecff;opacity:.95}
-  .abtn.magic .ico{font-size:24px;margin-top:-6px}
-  .abtn .cd{position:absolute;inset:0;border-radius:50%;background:rgba(5,8,20,.72);
-    display:none;align-items:center;justify-content:center;font-size:14px;font-weight:900}
-  .abtn.nomp{filter:grayscale(.7) brightness(.7)}
-  #btnAtk{width:86px;height:86px;right:6px;bottom:6px;
-    background:radial-gradient(circle at 32% 28%,#ffe9a8,#f5c542 45%,#8a5f10)}
-  #btnAtk .ico{font-size:30px}
-  #btnDodge{width:56px;height:56px;right:104px;bottom:0;
-    background:radial-gradient(circle at 32% 28%,#e8ecff,#8f9ec4 50%,#3c4666)}
-  #btnFire{width:58px;height:58px;right:118px;bottom:66px;
-    background:radial-gradient(circle at 32% 28%,#ffc37a,#ff7a2f 50%,#8c2500)}
-  #btnIce{width:58px;height:58px;right:76px;bottom:126px;
-    background:radial-gradient(circle at 32% 28%,#d8f4ff,#5ac8ff 50%,#0d4f8c)}
-  #btnThunder{width:58px;height:58px;right:8px;bottom:150px;
-    background:radial-gradient(circle at 32% 28%,#fff7b0,#ffd83d 50%,#8c6a00)}
-  #btnCure{width:50px;height:50px;right:150px;bottom:0;
-    background:radial-gradient(circle at 32% 28%,#d2ffd8,#4fd964 50%,#146425)}
-  #btnCure .ico{font-size:18px}
+    touch-action:none;
+    background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.22),
+      rgba(20,27,56,.94) 52%, rgba(7,10,24,.96));
+    border:2px solid var(--ac,#f5c542);
+    box-shadow:0 4px 16px rgba(0,0,0,.55), inset 0 0 16px rgba(0,0,0,.55),
+      inset 0 0 9px -3px var(--ac,#f5c542), 0 0 13px -3px var(--ac,#f5c542);
+    text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  .abtn:active{transform:scale(.93)}
+  .abtn .ico{font-size:23px;line-height:1;filter:drop-shadow(0 0 7px var(--ac,#f5c542))}
+  .abtn .lbl{font-size:9px;letter-spacing:.08em;margin-top:2px;color:#e8edff;
+    text-transform:uppercase}
+  .abtn .cost{position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);
+    background:rgba(8,12,26,.96);border:1px solid var(--ac,#f5c542);border-radius:999px;
+    padding:1px 7px;font-size:8px;font-weight:900;color:#dcecff;letter-spacing:.04em}
+  .abtn .cd{position:absolute;inset:-2px;border-radius:50%;
+    display:none;align-items:center;justify-content:center;
+    font-size:14px;font-weight:900;color:#fff;text-shadow:0 0 5px #000}
+  .abtn.nomp{filter:grayscale(.75) brightness(.65)}
+  #btnAtk{width:96px;height:96px;right:10px;bottom:10px;--ac:#f5c542}
+  #btnAtk .ico{font-size:34px;color:#ffe9a8}
+  #btnDodge{width:62px;height:62px;right:116px;bottom:10px;--ac:#b9c6e8}
+  #btnDodge .ico{font-size:21px}
+  #btnCure{width:58px;height:58px;right:158px;bottom:78px;--ac:#57e86b}
+  #btnFire{width:58px;height:58px;right:118px;bottom:132px;--ac:#ff8030}
+  #btnIce{width:58px;height:58px;right:62px;bottom:166px;--ac:#5ac8ff}
+  #btnThunder{width:58px;height:58px;right:4px;bottom:180px;--ac:#ffd83d}
 
   /* lock-on marker text */
   #comboTag{position:absolute;left:50%;top:34%;transform:translateX(-50%);
@@ -177,8 +187,11 @@
 <!-- HUD -->
 <div id="hud">
   <div class="bars">
-    <div class="bar hp" id="hpBar"><div class="fill" id="hpFill"></div><span class="cap">PV</span></div>
-    <div class="bar mp" id="mpBar"><div class="fill" id="mpFill"></div><span class="cap">PM</span></div>
+    <div class="emblem">⚔</div>
+    <div class="barcol">
+      <div class="bar hp" id="hpBar"><div class="fill" id="hpFill"></div><span class="cap">PV</span></div>
+      <div class="bar mp" id="mpBar"><div class="fill" id="mpFill"></div><span class="cap">PM</span></div>
+    </div>
   </div>
   <div class="topline">
     <div class="roundchip"><small>RONDA</small><span id="roundTxt">1 / 5</span></div>
@@ -195,10 +208,10 @@
   <div id="stickKnob"></div>
 
   <div id="actions">
-    <div class="abtn magic" id="btnThunder"><span class="ico">⚡</span><span class="cost">18</span><span class="cd"></span></div>
-    <div class="abtn magic" id="btnIce"><span class="ico">❄</span><span class="cost">12</span><span class="cd"></span></div>
-    <div class="abtn magic" id="btnFire"><span class="ico">🔥</span><span class="cost">10</span><span class="cd"></span></div>
-    <div class="abtn magic" id="btnCure"><span class="ico">✚</span><span class="cost">30</span><span class="cd"></span></div>
+    <div class="abtn magic" id="btnThunder"><span class="ico">⚡</span><span class="cost">18 PM</span><span class="cd"></span></div>
+    <div class="abtn magic" id="btnIce"><span class="ico">❄</span><span class="cost">12 PM</span><span class="cd"></span></div>
+    <div class="abtn magic" id="btnFire"><span class="ico">🔥</span><span class="cost">10 PM</span><span class="cd"></span></div>
+    <div class="abtn magic" id="btnCure"><span class="ico">✚</span><span class="cost">30 PM</span><span class="cd"></span></div>
     <div class="abtn" id="btnDodge"><span class="ico">↻</span><span class="lbl">Rodar</span><span class="cd"></span></div>
     <div class="abtn" id="btnAtk"><span class="ico">⚔</span><span class="lbl">Ataque</span></div>
   </div>
