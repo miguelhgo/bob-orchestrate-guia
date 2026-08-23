@@ -25,6 +25,15 @@ de imágenes inline sin peticiones, así que funciona también desde `file://`.)
 - `index.html` — toda la guía en una sola página, con índice lateral.
 - `styles.css` — tema claro (IBM Plex, azul #0F62FE, recuadros pálidos).
 - `assets/` — capturas con nombres semánticos, revisadas y saneadas.
+- `coliseo.html` + `coliseo.js` — extra aparte de la guía: mini-juego de acción
+  por rondas en vertical (móvil), tributo al estilo de los torneos del Coliseo
+  de Kingdom Hearts. Todo procedural (Three.js local en `vendor/`, cel-shading,
+  magias Fuego/Hielo/Electro/Cura, 3 copas). Sin assets de terceros: los
+  modelos y efectos se generan por código. Necesita servirse por HTTP
+  (los módulos ES no cargan desde `file://`): en local,
+  `python3 -m http.server 8080` y abre `/coliseo.html`.
+- `vendor/three.module.min.js` — Three.js r160 (licencia MIT en
+  `vendor/THREE-LICENSE.txt`), copiado en local para no depender de un CDN.
 
 ## Revisión de imágenes (hecha el 25-jul-2026, antes de publicar)
 

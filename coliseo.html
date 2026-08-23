@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0e1a" />
+<title>El Coliseo · Modo vertical</title>
+<meta name="description" content="Mini-juego de acción por rondas inspirado en el Coliseo del Olimpo de Kingdom Hearts. Vertical, para móvil, con magias." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --gold:#f5c542; --gold-dark:#b98a1c;
+    --hp:#57e86b; --hp-dark:#1d7a2c;
+    --mp:#5aa7ff; --mp-dark:#1d4e9e;
+    --ui-bg:rgba(10,14,30,.72);
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:#0b0e1a;touch-action:none;
+    font-family:'Nunito',system-ui,sans-serif;color:#fff;
+    -webkit-user-select:none;user-select:none;overscroll-behavior:none}
+  #game{position:fixed;inset:0}
+  canvas{display:block}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;pointer-events:none;display:none}
+  #hud.on{display:block}
+
+  .bars{position:absolute;top:calc(10px + var(--safe-top));left:12px;right:12px;
+    display:flex;flex-direction:column;gap:5px}
+  .bar{height:16px;border-radius:9px;background:rgba(0,0,0,.55);
+    border:2px solid rgba(255,255,255,.28);overflow:hidden;position:relative;
+    box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .bar .fill{position:absolute;inset:0;border-radius:7px;transform-origin:left;
+    transition:transform .18s ease-out}
+  .bar.hp .fill{background:linear-gradient(180deg,#a9ffb4 0%,var(--hp) 45%,var(--hp-dark) 100%)}
+  .bar.hp.low .fill{background:linear-gradient(180deg,#ffd2a9 0%,#ff8b3d 45%,#a33c00 100%)}
+  .bar.mp{height:12px;width:78%}
+  .bar.mp .fill{background:linear-gradient(180deg,#bcdcff 0%,var(--mp) 45%,var(--mp-dark) 100%)}
+  .bar .cap{position:absolute;right:4px;top:50%;transform:translateY(-50%);
+    font-size:9px;font-weight:900;letter-spacing:.08em;color:rgba(255,255,255,.85);
+    text-shadow:0 1px 2px rgba(0,0,0,.8)}
+
+  .topline{position:absolute;top:calc(64px + var(--safe-top));left:12px;right:12px;
+    display:flex;justify-content:space-between;align-items:flex-start;font-weight:800}
+  .roundchip,.scorechip{background:var(--ui-bg);border:1.5px solid rgba(245,197,66,.5);
+    border-radius:10px;padding:4px 10px;font-size:13px;line-height:1.25;
+    box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  .roundchip small,.scorechip small{display:block;font-size:9px;letter-spacing:.14em;
+    color:var(--gold);font-weight:900}
+  .scorechip{text-align:right}
+
+  .sysbtns{position:absolute;top:calc(64px + var(--safe-top));left:50%;transform:translateX(-50%);
+    display:flex;gap:8px;pointer-events:auto}
+  .sysbtn{width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);
+    background:var(--ui-bg);color:#fff;font-size:15px;display:flex;align-items:center;
+    justify-content:center;cursor:pointer}
+  .sysbtn:active{transform:scale(.92)}
+
+  /* joystick */
+  #stickZone{position:absolute;left:0;bottom:0;width:52%;height:46%;pointer-events:auto}
+  #stickBase{position:absolute;width:110px;height:110px;border-radius:50%;
+    border:2.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.07);
+    display:none;transform:translate(-50%,-50%);
+    box-shadow:inset 0 0 24px rgba(255,255,255,.08)}
+  #stickKnob{position:absolute;width:52px;height:52px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.85),rgba(180,190,220,.55));
+    display:none;transform:translate(-50%,-50%);box-shadow:0 3px 10px rgba(0,0,0,.45)}
+
+  /* action cluster */
+  #actions{position:absolute;right:10px;bottom:calc(18px + var(--safe-bottom));
+    width:196px;height:230px;pointer-events:auto}
+  .abtn{position:absolute;border-radius:50%;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;font-weight:900;color:#fff;
+    border:2.5px solid rgba(255,255,255,.5);text-shadow:0 1px 3px rgba(0,0,0,.7);
+    box-shadow:0 4px 14px rgba(0,0,0,.5), inset 0 0 14px rgba(255,255,255,.15);
+    touch-action:none;overflow:hidden}
+  .abtn:active{transform:scale(.94)}
+  .abtn .ico{font-size:22px;line-height:1}
+  .abtn .lbl{font-size:9px;letter-spacing:.06em;margin-top:1px}
+  .abtn .cost{position:absolute;bottom:4px;right:0;left:0;text-align:center;font-size:9px;
+    font-weight:900;color:#dcecff;opacity:.95}
+  .abtn.magic .ico{font-size:24px;margin-top:-6px}
+  .abtn .cd{position:absolute;inset:0;border-radius:50%;background:rgba(5,8,20,.72);
+    display:none;align-items:center;justify-content:center;font-size:14px;font-weight:900}
+  .abtn.nomp{filter:grayscale(.7) brightness(.7)}
+  #btnAtk{width:86px;height:86px;right:6px;bottom:6px;
+    background:radial-gradient(circle at 32% 28%,#ffe9a8,#f5c542 45%,#8a5f10)}
+  #btnAtk .ico{font-size:30px}
+  #btnDodge{width:56px;height:56px;right:104px;bottom:0;
+    background:radial-gradient(circle at 32% 28%,#e8ecff,#8f9ec4 50%,#3c4666)}
+  #btnFire{width:58px;height:58px;right:118px;bottom:66px;
+    background:radial-gradient(circle at 32% 28%,#ffc37a,#ff7a2f 50%,#8c2500)}
+  #btnIce{width:58px;height:58px;right:76px;bottom:126px;
+    background:radial-gradient(circle at 32% 28%,#d8f4ff,#5ac8ff 50%,#0d4f8c)}
+  #btnThunder{width:58px;height:58px;right:8px;bottom:150px;
+    background:radial-gradient(circle at 32% 28%,#fff7b0,#ffd83d 50%,#8c6a00)}
+  #btnCure{width:50px;height:50px;right:150px;bottom:0;
+    background:radial-gradient(circle at 32% 28%,#d2ffd8,#4fd964 50%,#146425)}
+  #btnCure .ico{font-size:18px}
+
+  /* lock-on marker text */
+  #comboTag{position:absolute;left:50%;top:34%;transform:translateX(-50%);
+    font-family:'Cinzel Decorative',serif;font-weight:900;font-size:26px;color:var(--gold);
+    text-shadow:0 0 14px rgba(245,197,66,.65),0 2px 4px rgba(0,0,0,.8);
+    opacity:0;transition:opacity .2s}
+
+  /* damage numbers */
+  .dmg{position:absolute;font-weight:900;font-size:20px;pointer-events:none;
+    text-shadow:0 2px 3px rgba(0,0,0,.85);transform:translate(-50%,-50%);will-change:transform,opacity}
+
+  /* ---------- overlays ---------- */
+  .overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:24px;z-index:20;
+    background:radial-gradient(ellipse at 50% 30%,rgba(24,32,66,.94),rgba(6,8,18,.97));
+    pointer-events:auto}
+  .overlay.on{display:flex}
+  .overlay h1{font-family:'Cinzel Decorative',serif;font-size:clamp(30px,9vw,44px);
+    color:var(--gold);text-shadow:0 0 24px rgba(245,197,66,.5),0 3px 6px rgba(0,0,0,.9);
+    line-height:1.1;margin-bottom:6px}
+  .overlay .sub{font-size:13px;letter-spacing:.22em;color:#9fb0e0;font-weight:800;
+    text-transform:uppercase;margin-bottom:26px}
+  .laurel{font-size:30px;margin-bottom:8px;filter:drop-shadow(0 0 8px rgba(245,197,66,.6))}
+
+  .cup{width:min(320px,86vw);margin:7px 0;padding:13px 16px;border-radius:14px;
+    background:linear-gradient(135deg,rgba(38,48,92,.9),rgba(16,20,44,.9));
+    border:2px solid rgba(245,197,66,.45);cursor:pointer;text-align:left;color:#fff;
+    display:flex;align-items:center;gap:13px;font-family:inherit;
+    box-shadow:0 4px 16px rgba(0,0,0,.45)}
+  .cup:active{transform:scale(.97)}
+  .cup .cico{font-size:26px}
+  .cup b{display:block;font-size:16px;color:#ffe9a8;font-weight:900}
+  .cup span{font-size:11px;color:#aab8e0;font-weight:700}
+  .cup .best{margin-left:auto;text-align:right;font-size:10px;color:var(--gold);font-weight:900}
+  .cup.locked{filter:grayscale(.85) brightness(.6);pointer-events:none}
+
+  .obtn{margin-top:10px;padding:12px 34px;border-radius:999px;border:2px solid var(--gold);
+    background:linear-gradient(180deg,#f8d878,#c99a25);color:#241a02;font-weight:900;
+    font-size:16px;font-family:inherit;cursor:pointer;letter-spacing:.05em;
+    box-shadow:0 4px 16px rgba(245,197,66,.35)}
+  .obtn:active{transform:scale(.95)}
+  .obtn.ghost{background:transparent;color:#cdd8f5;border-color:rgba(255,255,255,.4);
+    box-shadow:none;font-size:13px;padding:9px 22px}
+
+  .stats{margin:4px 0 12px;font-size:14px;color:#cdd8f5;font-weight:700;line-height:1.9}
+  .stats b{color:#ffe9a8}
+  .hint{margin-top:22px;font-size:11px;color:#8b97bd;font-weight:700;max-width:300px;line-height:1.6}
+
+  /* round announce */
+  #announce{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;
+    justify-content:center;pointer-events:none;z-index:15;text-align:center}
+  #announce.on{display:flex;animation:annIn 2.3s ease forwards}
+  #announce h2{font-family:'Cinzel Decorative',serif;font-size:clamp(34px,11vw,52px);
+    color:var(--gold);text-shadow:0 0 30px rgba(245,197,66,.6),0 3px 8px rgba(0,0,0,.9)}
+  #announce p{font-size:14px;letter-spacing:.28em;color:#dbe4ff;font-weight:800;text-transform:uppercase}
+  #announce .rule{width:200px;height:2px;margin:10px auto;
+    background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+  @keyframes annIn{0%{opacity:0;transform:scale(1.25)}12%{opacity:1;transform:scale(1)}
+    80%{opacity:1}100%{opacity:0}}
+
+  #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:12}
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:11;opacity:0;
+    background:radial-gradient(ellipse at center,transparent 55%,rgba(200,0,0,.55) 100%);
+    transition:opacity .3s}
+
+  .credit{position:fixed;bottom:calc(8px + var(--safe-bottom));left:0;right:0;text-align:center;
+    font-size:9px;color:#5a6488;font-weight:700;letter-spacing:.1em;pointer-events:none}
+</style>
+</head>
+<body>
+
+<div id="game"></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="bars">
+    <div class="bar hp" id="hpBar"><div class="fill" id="hpFill"></div><span class="cap">PV</span></div>
+    <div class="bar mp" id="mpBar"><div class="fill" id="mpFill"></div><span class="cap">PM</span></div>
+  </div>
+  <div class="topline">
+    <div class="roundchip"><small>RONDA</small><span id="roundTxt">1 / 5</span></div>
+    <div class="scorechip"><small>PUNTOS</small><span id="scoreTxt">0</span></div>
+  </div>
+  <div class="sysbtns">
+    <button class="sysbtn" id="btnPause" aria-label="Pausa">❚❚</button>
+    <button class="sysbtn" id="btnMute" aria-label="Sonido">♪</button>
+  </div>
+  <div id="comboTag"></div>
+
+  <div id="stickZone"></div>
+  <div id="stickBase"></div>
+  <div id="stickKnob"></div>
+
+  <div id="actions">
+    <div class="abtn magic" id="btnThunder"><span class="ico">⚡</span><span class="cost">18</span><span class="cd"></span></div>
+    <div class="abtn magic" id="btnIce"><span class="ico">❄</span><span class="cost">12</span><span class="cd"></span></div>
+    <div class="abtn magic" id="btnFire"><span class="ico">🔥</span><span class="cost">10</span><span class="cd"></span></div>
+    <div class="abtn magic" id="btnCure"><span class="ico">✚</span><span class="cost">30</span><span class="cd"></span></div>
+    <div class="abtn" id="btnDodge"><span class="ico">↻</span><span class="lbl">Rodar</span><span class="cd"></span></div>
+    <div class="abtn" id="btnAtk"><span class="ico">⚔</span><span class="lbl">Ataque</span></div>
+  </div>
+</div>
+
+<!-- title / cup select -->
+<div class="overlay on" id="ovTitle">
+  <div class="laurel">🏛️</div>
+  <h1>El Coliseo</h1>
+  <p class="sub">Torneo de los héroes</p>
+  <button class="cup" data-cup="0">
+    <span class="cico">🥉</span>
+    <span><b>Copa Céfiro</b><span>5 rondas · para calentar</span></span>
+    <span class="best" id="best0"></span>
+  </button>
+  <button class="cup" data-cup="1" id="cup1">
+    <span class="cico">🥈</span>
+    <span><b>Copa Pegaso</b><span>6 rondas · enemigos veloces</span></span>
+    <span class="best" id="best1"></span>
+  </button>
+  <button class="cup" data-cup="2" id="cup2">
+    <span class="cico">🏆</span>
+    <span><b>Copa del Héroe</b><span>7 rondas · con jefe final</span></span>
+    <span class="best" id="best2"></span>
+  </button>
+  <p class="hint">Muévete con el joystick izquierdo. Ataca, rueda para esquivar y lanza
+    <b style="color:#ffb36b">Fuego</b>, <b style="color:#8fd8ff">Hielo</b>,
+    <b style="color:#ffe36b">Electro</b> y <b style="color:#8fe89b">Cura</b>.<br/>
+    En ordenador: WASD / flechas, <b>J</b> ataque, <b>K</b> rodar, <b>1-4</b> magias.</p>
+  <p class="credit">Tributo hecho por fans · sin ánimo de lucro</p>
+</div>
+
+<!-- victory -->
+<div class="overlay" id="ovWin">
+  <div class="laurel">🏆</div>
+  <h1>¡Victoria!</h1>
+  <p class="sub" id="winCup">Copa Céfiro</p>
+  <div class="stats" id="winStats"></div>
+  <button class="obtn" id="btnWinNext">Continuar</button>
+  <button class="obtn ghost" id="btnWinMenu">Volver al coliseo</button>
+</div>
+
+<!-- defeat -->
+<div class="overlay" id="ovLose">
+  <div class="laurel">💫</div>
+  <h1>Derrota…</h1>
+  <p class="sub">El torneo continúa sin ti</p>
+  <div class="stats" id="loseStats"></div>
+  <button class="obtn" id="btnRetry">Reintentar copa</button>
+  <button class="obtn ghost" id="btnLoseMenu">Volver al coliseo</button>
+</div>
+
+<!-- pause -->
+<div class="overlay" id="ovPause">
+  <h1 style="font-size:32px">Pausa</h1>
+  <p class="sub">El público espera</p>
+  <button class="obtn" id="btnResume">Seguir luchando</button>
+  <button class="obtn ghost" id="btnPauseMenu">Abandonar torneo</button>
+</div>
+
+<div id="announce"><h2 id="annTitle">Ronda 1</h2><div class="rule"></div><p id="annSub">Sombras errantes</p></div>
+<div id="flash"></div>
+<div id="vignette"></div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+<script type="module" src="coliseo.js"></script>
+</body>
+</html>
