@@ -32,8 +32,14 @@ de imágenes inline sin peticiones, así que funciona también desde `file://`.)
   modelos y efectos se generan por código. Necesita servirse por HTTP
   (los módulos ES no cargan desde `file://`): en local,
   `python3 -m http.server 8080` y abre `/coliseo.html`.
-- `vendor/three.module.min.js` — Three.js r160 (licencia MIT en
-  `vendor/THREE-LICENSE.txt`), copiado en local para no depender de un CDN.
+- `vendor/` — Three.js r160 (licencia MIT en `vendor/THREE-LICENSE.txt`) más
+  `GLTFLoader.js` y `BufferGeometryUtils.js` de sus ejemplos, copiados en local
+  para no depender de un CDN.
+- `assets3d/Soldier.glb` — protagonista con esqueleto Mixamo y animaciones
+  mocap propias (Idle, Run, Walk), tomado de los ejemplos de three.js
+  (`examples/models/gltf/Soldier.glb`). Las animaciones de combate (combo de
+  espada, voltereta, lanzamiento de magia y ataque aéreo) están escritas a mano
+  como `AnimationClip` sobre ese mismo esqueleto, en `coliseo.js`.
 
 ## Revisión de imágenes (hecha el 25-jul-2026, antes de publicar)
 

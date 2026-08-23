@@ -1,6 +1,7 @@
 // El Coliseo — mini-juego de acción por rondas en vertical, tributo al estilo
 // de los torneos del Coliseo del Olimpo. Todo procedural: sin assets externos.
 import * as THREE from 'three';
+import { GLTFLoader } from './vendor/GLTFLoader.js';
 
 /* ================================================================ utils */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -743,139 +744,109 @@ function updateDmg(dt) {
 }
 
 /* ================================================================ héroe */
-function buildHero() {
-  const root = new THREE.Group();
-  const rig = new THREE.Group(); // lo que rueda/inclina
-  root.add(rig);
+/* ============ héroe: modelo con esqueleto Mixamo + animaciones ============ */
+const BONE = n => 'mixamorig' + n;
 
-  const skin = toon(0xf2c9a0), jacket = toon(0x2c2c38), redP = toon(0xc0303c),
-    navy = toon(0x30409a), shoe = toon(0xe8b23a), hairM = toon(0x7a5230),
-    glove = toon(0xf2f2f2), gold = toon(0xd6a432), dark = toon(0x1f1f28);
-
-  // piernas: pantalón azul + zapatones amarillos con correa
-  const legL = new THREE.Group(), legR = new THREE.Group();
-  for (const [leg, sx] of [[legL, -1], [legR, 1]]) {
-    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.085, 0.32, 8), navy);
-    thigh.position.y = -0.16;
-    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.08, 8), dark);
-    cuff.position.y = -0.3;
-    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.155, 9, 7), shoe);
-    foot.scale.set(1, 0.72, 1.75);
-    foot.position.set(0, -0.365, 0.07);
-    const strap = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.055, 0.1), dark);
-    strap.position.set(0, -0.3, 0.14);
-    strap.rotation.x = 0.5;
-    leg.add(thigh, cuff, foot, strap);
-    leg.position.set(sx * 0.12, 0.44, 0);
-    rig.add(leg);
+// Construye un AnimationClip a partir de poses absolutas (euler XYZ, radianes)
+// sobre los huesos del rig Mixamo. [tiempo, x, y, z] por fotograma clave.
+function buildClip(name, dur, spec) {
+  const tracks = [];
+  const q = new THREE.Quaternion(), e = new THREE.Euler();
+  for (const bone in spec) {
+    const times = [], vals = [];
+    for (const k of spec[bone]) {
+      times.push(k[0]);
+      e.set(k[1], k[2], k[3]);
+      q.setFromEuler(e);
+      vals.push(q.x, q.y, q.z, q.w);
+    }
+    tracks.push(new THREE.QuaternionKeyframeTrack(BONE(bone) + '.quaternion', times, vals));
   }
+  return new THREE.AnimationClip(name, dur, tracks);
+}
 
-  // torso: chaqueta oscura con panel rojo central y capucha
-  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.27, 0.52, 12), jacket);
-  torso.position.y = 0.68;
-  rig.add(torso);
-  const panel = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.4, 0.1), redP);
-  panel.position.set(0, 0.68, 0.16);
-  rig.add(panel);
-  const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.25, 0.085, 12), dark);
-  belt.position.y = 0.46;
-  rig.add(belt);
-  const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.03), gold);
-  buckle.position.set(0, 0.46, 0.24);
-  rig.add(buckle);
-  const hood = new THREE.Mesh(new THREE.SphereGeometry(0.15, 9, 7), redP);
-  hood.scale.set(1.25, 0.7, 0.9);
-  hood.position.set(0, 0.97, -0.16);
-  rig.add(hood);
-  // colgante de corona
-  const pendant = new THREE.Mesh(new THREE.OctahedronGeometry(0.045, 0), gold);
-  pendant.position.set(0, 0.85, 0.2);
-  rig.add(pendant);
-
-  // brazos: manga roja corta, antebrazo con piel y guante blanco
-  const armL = new THREE.Group(), armR = new THREE.Group();
-  for (const [arm, sx] of [[armL, -1], [armR, 1]]) {
-    const pad = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), redP);
-    pad.position.y = -0.02;
-    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.18, 8), jacket);
-    sleeve.position.y = -0.12;
-    const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.052, 0.2, 8), skin);
-    fore.position.y = -0.29;
-    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.075, 0.06, 8), dark);
-    cuff.position.y = -0.38;
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.085, 8, 6), glove);
-    hand.position.y = -0.45;
-    arm.add(pad, sleeve, fore, cuff, hand);
-    arm.position.set(sx * 0.28, 0.9, 0);
-    arm.rotation.z = sx * -0.15;
-    rig.add(arm);
-  }
-
-  // cabeza chibi con pelo de mechones grandes barridos
-  const head = new THREE.Group();
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.29, 14, 11), skin);
-  head.add(skull);
-  // corona de mechones traseros y laterales, barridos hacia atrás-arriba
-  const spikes = [
-    // [ángulo alrededor, alto, largo, inclinación extra hacia atrás]
-    [0.0, 0.2, 0.5, -0.55], [0.9, 0.2, 0.46, -0.4], [-0.9, 0.2, 0.46, -0.4],
-    [1.8, 0.16, 0.42, -0.15], [-1.8, 0.16, 0.42, -0.15],
-    [2.6, 0.1, 0.4, 0.25], [-2.6, 0.1, 0.4, 0.25], [Math.PI, 0.08, 0.44, 0.5],
+// Set de animaciones de combate escritas a mano sobre el rig
+function combatClips() {
+  return [
+    // combo 1: tajo descendente de derecha a izquierda
+    buildClip('attack1', 0.42, {
+      RightArm:     [[0,-2.3,0,-0.5],[0.12,-2.8,0,-1.0],[0.26,0.4,0,-0.15],[0.42,-0.6,0,-0.3]],
+      RightForeArm: [[0,0,0,-0.7],[0.12,0,0,-1.5],[0.26,0,0,-0.15],[0.42,0,0,-0.5]],
+      Spine:        [[0,0,0.3,0],[0.12,0,0.55,0],[0.26,0,-0.45,0],[0.42,0,-0.1,0]],
+      Spine1:       [[0,0,0.15,0],[0.26,0,-0.25,0],[0.42,0,0,0]],
+      LeftArm:      [[0,-0.3,0,0.7],[0.26,-0.6,0,1.1],[0.42,-0.2,0,0.5]],
+    }),
+    // combo 2: revés ascendente de izquierda a derecha
+    buildClip('attack2', 0.42, {
+      RightArm:     [[0,-0.5,0,-0.2],[0.12,0.6,0,0.5],[0.26,-2.2,0,-0.9],[0.42,-1.2,0,-0.4]],
+      RightForeArm: [[0,0,0,-0.4],[0.12,0,0,-0.2],[0.26,0,0,-1.2],[0.42,0,0,-0.6]],
+      Spine:        [[0,0,-0.4,0],[0.12,0,-0.6,0],[0.26,0,0.5,0],[0.42,0,0.1,0]],
+      Spine1:       [[0,0,-0.2,0],[0.26,0,0.3,0],[0.42,0,0,0]],
+      LeftArm:      [[0,-0.2,0,0.5],[0.26,-0.7,0,0.9],[0.42,-0.2,0,0.5]],
+    }),
+    // combo 3: mandoble giratorio con remate hacia arriba
+    buildClip('attack3', 0.62, {
+      RightArm:     [[0,-1.0,0,-0.3],[0.15,-2.9,0,-0.6],[0.38,0.9,0,-0.2],[0.62,-0.4,0,-0.3]],
+      RightForeArm: [[0,0,0,-0.5],[0.15,0,0,-1.6],[0.38,0,0,-0.1],[0.62,0,0,-0.5]],
+      Spine:        [[0,0,0,0],[0.15,-0.25,0.4,0],[0.38,0.15,-0.5,0],[0.62,0,0,0]],
+      LeftArm:      [[0,-0.3,0,0.6],[0.38,-1.2,0,1.3],[0.62,-0.2,0,0.5]],
+      LeftUpLeg:    [[0,0,0,0],[0.3,-0.5,0,0],[0.62,0,0,0]],
+    }),
+    // ataque aéreo: tajo en picado con las piernas recogidas
+    buildClip('airAttack', 0.5, {
+      RightArm:     [[0,-2.6,0,-0.7],[0.16,-3.0,0,-1.1],[0.34,0.7,0,-0.1],[0.5,-0.5,0,-0.3]],
+      RightForeArm: [[0,0,0,-0.9],[0.34,0,0,-0.1],[0.5,0,0,-0.5]],
+      Spine:        [[0,-0.2,0.25,0],[0.34,0.35,-0.35,0],[0.5,0,0,0]],
+      LeftUpLeg:    [[0,-0.9,0,0.2],[0.5,-0.7,0,0.2]],
+      RightUpLeg:   [[0,-0.4,0,-0.2],[0.5,-0.3,0,-0.2]],
+      LeftLeg:      [[0,1.3,0,0],[0.5,1.1,0,0]],
+      RightLeg:     [[0,0.8,0,0],[0.5,0.7,0,0]],
+    }),
+    // voltereta: cuerpo recogido (el giro lo hace la raíz por código)
+    buildClip('roll', 0.45, {
+      Spine:        [[0,0.5,0,0],[0.2,0.8,0,0],[0.45,0.15,0,0]],
+      Spine1:       [[0,0.35,0,0],[0.2,0.6,0,0],[0.45,0.1,0,0]],
+      LeftUpLeg:    [[0,-1.5,0,0.2],[0.2,-2.0,0,0.2],[0.45,-0.4,0,0.1]],
+      RightUpLeg:   [[0,-1.5,0,-0.2],[0.2,-2.0,0,-0.2],[0.45,-0.4,0,-0.1]],
+      LeftLeg:      [[0,1.8,0,0],[0.2,2.2,0,0],[0.45,0.5,0,0]],
+      RightLeg:     [[0,1.8,0,0],[0.2,2.2,0,0],[0.45,0.5,0,0]],
+      LeftArm:      [[0,-0.6,0,1.2],[0.45,-0.3,0,0.6]],
+      RightArm:     [[0,-0.6,0,-1.2],[0.45,-0.3,0,-0.6]],
+    }),
+    // lanzamiento de magia: brazo al cielo y torso atrás
+    buildClip('cast', 0.5, {
+      RightArm:     [[0,-1.0,0,-0.3],[0.16,-3.0,0,-0.35],[0.36,-2.9,0,-0.3],[0.5,-1.2,0,-0.3]],
+      RightForeArm: [[0,0,0,-0.5],[0.16,0,0,-0.15],[0.5,0,0,-0.5]],
+      Spine:        [[0,0,0,0],[0.2,-0.28,0,0],[0.5,0,0,0]],
+      LeftArm:      [[0,-0.3,0,0.5],[0.2,-1.0,0,0.8],[0.5,-0.3,0,0.5]],
+    }),
+    // impacto recibido
+    buildClip('hurt', 0.36, {
+      Spine:        [[0,0,0,0],[0.1,-0.5,0.2,0],[0.36,0,0,0]],
+      Spine1:       [[0,0,0,0],[0.1,-0.3,0.15,0],[0.36,0,0,0]],
+      RightArm:     [[0,-0.8,0,-0.4],[0.1,-1.6,0,-0.8],[0.36,-0.6,0,-0.3]],
+      LeftArm:      [[0,-0.3,0,0.5],[0.1,-1.4,0,0.9],[0.36,-0.3,0,0.5]],
+    }),
+    // caída
+    buildClip('die', 0.8, {
+      Spine:        [[0,0,0,0],[0.35,-0.6,0.3,0],[0.8,-0.9,0.4,0]],
+      RightArm:     [[0,-0.8,0,-0.4],[0.8,-2.2,0,-1.0]],
+      LeftArm:      [[0,-0.3,0,0.5],[0.8,-1.8,0,1.2]],
+      LeftUpLeg:    [[0,0,0,0.1],[0.8,-0.7,0,0.3]],
+      RightUpLeg:   [[0,0,0,-0.1],[0.8,-0.4,0,-0.3]],
+    }),
   ];
-  for (const [a, y, len, back] of spikes) {
-    const sp = new THREE.Mesh(new THREE.ConeGeometry(0.115, len, 7), hairM);
-    // nace del cráneo y apunta hacia fuera y arriba
-    const dir = new THREE.Vector3(Math.sin(a) * 0.8, 1.15, -Math.cos(a) * 0.8 + back).normalize();
-    sp.position.set(Math.sin(a) * 0.16, y + 0.13, -Math.cos(a) * 0.16);
-    sp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-    sp.position.addScaledVector(dir, len * 0.28);
-    head.add(sp);
-  }
-  // flequillo: tres puntas cayendo sobre la frente
-  for (const [sx, len, tilt] of [[-0.13, 0.3, 0.35], [0.02, 0.34, 0.1], [0.15, 0.28, -0.3]]) {
-    const f = new THREE.Mesh(new THREE.ConeGeometry(0.09, len, 6), hairM);
-    const dir = new THREE.Vector3(tilt, -0.55, 0.85).normalize();
-    f.position.set(sx, 0.17, 0.2);
-    f.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
-    f.position.addScaledVector(dir, len * 0.3);
-    head.add(f);
-  }
-  // ojos grandes con brillo
-  for (const sx of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8),
-      new THREE.MeshBasicMaterial({ color: 0x2a4fa8 }));
-    eye.userData.noOutline = true;
-    eye.scale.set(0.75, 1.35, 0.45);
-    eye.position.set(sx * 0.105, 0.0, 0.255);
-    head.add(eye);
-    const glint = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 6),
-      new THREE.MeshBasicMaterial({ color: 0xffffff }));
-    glint.userData.noOutline = true;
-    glint.position.set(sx * 0.085, 0.035, 0.29);
-    head.add(glint);
-    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.02, 0.02), hairM);
-    brow.userData.noOutline = true;
-    brow.position.set(sx * 0.105, 0.1, 0.265);
-    brow.rotation.z = sx * -0.18;
-    head.add(brow);
-  }
-  // boca: sonrisa pequeña
-  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.016, 0.012),
-    new THREE.MeshBasicMaterial({ color: 0x7c4a3a }));
-  mouth.userData.noOutline = true;
-  mouth.position.set(0, -0.11, 0.27);
-  head.add(mouth);
-  head.position.y = 1.24;
-  rig.add(head);
+}
 
-  // espada-llave: guarda cuadrada dorada, dientes de corona y cadena
+// La espada-llave, ahora pensada para ir sujeta al hueso de la mano
+function buildKeyblade() {
   const key = new THREE.Group();
-  const silver = toon(0xd4dbe8), silverDark = toon(0x9aa6bd);
+  const silver = toon(0xd4dbe8), silverDark = toon(0x9aa6bd),
+    gold = toon(0xd6a432), dark = toon(0x1f1f28);
   const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.82, 10), silver);
   shaft.position.y = 0.42;
   const shaftCap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), silverDark);
   shaftCap.position.y = 0.84;
-  // dientes: silueta de corona (tres almenas)
   const toothBar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 0.055), silver);
   toothBar.position.set(0.13, 0.72, 0);
   const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.055, 0.055), silver);
@@ -884,16 +855,13 @@ function buildHero() {
   t2.position.set(0.09, 0.72, 0);
   const t3 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.045, 0.055), silver);
   t3.position.set(0.1, 0.6, 0);
-  // guarda: marco cuadrado dorado alrededor de la empuñadura
   const gL = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.36, 0.05), gold);
-  gL.position.set(-0.14, 0.0, 0);
+  gL.position.set(-0.14, 0, 0);
   const gR = gL.clone(); gR.position.x = 0.14;
   const gT = new THREE.Mesh(new THREE.BoxGeometry(0.33, 0.045, 0.05), gold);
   gT.position.set(0, 0.17, 0);
   const gB = gT.clone(); gB.position.y = -0.17;
   const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.26, 8), dark);
-  grip.position.y = 0;
-  // cadena con dije
   const chain = new THREE.Group();
   for (let i = 0; i < 3; i++) {
     const link = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.009, 5, 8), silverDark);
@@ -905,21 +873,112 @@ function buildHero() {
   charm.position.y = -0.41;
   chain.add(charm);
   key.add(shaft, shaftCap, toothBar, t1, t2, t3, gL, gR, gT, gB, grip, chain);
-  key.position.set(0, -0.46, 0.06);
-  key.rotation.x = Math.PI / 2 * 0.9; // apoyada hacia delante
-  armR.add(key);
   const tip = new THREE.Object3D();
-  tip.position.y = 0.95;
+  tip.position.y = 0.9;
   key.add(tip);
+  addOutline(key, 0.05);
+  return { key, tip };
+}
 
-  addOutline(root, 0.06);
-  root.add(makeBlob(0.55));
+// Contorno negro para mallas con esqueleto: copia con caras traseras
+// desplazadas a lo largo de la normal (el escalado no sirve con skinning).
+function skinnedOutline(mesh, thickness) {
+  const mat = new THREE.MeshBasicMaterial({ color: 0x0a0a14, side: THREE.BackSide });
+  mat.onBeforeCompile = s => {
+    s.uniforms.oThick = { value: thickness };
+    s.vertexShader = 'uniform float oThick;\n' + s.vertexShader.replace(
+      '#include <begin_vertex>', '#include <begin_vertex>\n\ttransformed += objectNormal * oThick;');
+  };
+  const out = new THREE.SkinnedMesh(mesh.geometry, mat);
+  out.bind(mesh.skeleton, mesh.bindMatrix);
+  out.bindMode = mesh.bindMode;
+  out.raycast = () => {};
+  out.frustumCulled = false;
+  return out;
+}
+
+async function loadHeroModel() {
+  const loader = new GLTFLoader();
+  const gltf = await new Promise((res, rej) => {
+    // en la versión de una sola página el modelo viaja embebido en base64
+    const b64 = window.__HERO_GLB;
+    if (b64) {
+      const bin = atob(b64);
+      const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      loader.parse(buf.buffer, '', res, rej);
+    } else {
+      loader.load('assets3d/Soldier.glb', res, undefined, rej);
+    }
+  });
+  const root = new THREE.Group();      // raíz que posicionamos/rotamos en el juego
+  const rig = new THREE.Group();       // lo que gira en la voltereta
+  const model = gltf.scene;
+  rig.add(model);
+  root.add(rig);
+
+  // cel-shading sobre los materiales originales, conservando las texturas
+  const skinned = [];
+  model.traverse(o => {
+    if (!o.isMesh) return;
+    o.frustumCulled = false;
+    const src = o.material;
+    o.material = new THREE.MeshToonMaterial({
+      color: src.color ? src.color.clone() : new THREE.Color(0xffffff),
+      map: src.map || null, gradientMap: gradTex, skinning: true,
+    });
+    if (o.isSkinnedMesh) skinned.push(o);
+  });
+  for (const m of skinned) m.parent.add(skinnedOutline(m, 0.012));
+
+  // escala para que mida ~1.7 unidades de alto en el mundo del juego
+  model.updateWorldMatrix(true, true);
+  const headBone = model.getObjectByName(BONE('Head'));
+  const headY = headBone ? headBone.getWorldPosition(new THREE.Vector3()).y : 1.6;
+  const s = 1.7 / Math.max(0.01, headY * 1.14);
+  model.scale.setScalar(model.scale.x * s);
+  model.position.y = 0;
+  model.updateWorldMatrix(true, true);
+
+  // espada-llave sujeta a la mano derecha
+  const hand = model.getObjectByName(BONE('RightHand'));
+  const { key, tip } = buildKeyblade();
+  if (hand) {
+    const hs = hand.getWorldScale(new THREE.Vector3()).x;
+    key.scale.setScalar(1.15 / Math.max(0.0001, hs));
+    key.rotation.set(0.3, Math.PI / 2, -0.3);
+    key.position.set(0, 0.02 / Math.max(0.0001, hs), 0);
+    hand.add(key);
+  } else {
+    key.scale.setScalar(1.15); rig.add(key);
+  }
+
+  // mezclador y acciones (mocap nativo + combate escrito a mano)
+  const mixer = new THREE.AnimationMixer(model);
+  const actions = {};
+  const addClip = c => {
+    // quitamos el desplazamiento de la cadera: el movimiento lo lleva el juego
+    const cl = c.clone();
+    cl.tracks = cl.tracks.filter(t => !/Hips\.position$/.test(t.name));
+    actions[c.name] = mixer.clipAction(cl);
+  };
+  for (const c of gltf.animations) addClip(c);
+  for (const c of combatClips()) addClip(c);
+  // nombres del mocap nativo -> los que usa el juego
+  if (actions.Idle) actions.idle = actions.Idle;
+  if (actions.Run) actions.run = actions.Run;
+  if (actions.Walk) actions.walk = actions.Walk;
+
+  root.add(makeBlob(0.5));
   scene.add(root);
-  return { root, rig, legL, legR, armL, armR, head, key, tip };
+  return { root, rig, model, mixer, actions, tip, key };
 }
 
 const hero = {
-  m: buildHero(),
+  m: null,                       // se rellena al cargar el modelo
+  action: null, actionName: '',  // acción de animación en curso
+  y: 0, vy: 0, airborne: false,  // combate aéreo
+  airHits: 0,
   pos: new THREE.Vector3(0, 0, 3),
   vel: new THREE.Vector3(),
   facing: 0,
@@ -927,6 +986,7 @@ const hero = {
   speed: 5.4,
   state: 'idle', // idle run attack dodge cast hurt dead
   attackStep: 0, attackT: 0, attackQueued: false, attackHitDone: false,
+  comboStep: 0, comboTimer: 0,
   dodgeT: 0, dodgeCd: 0, dodgeDir: new THREE.Vector3(0, 0, 1),
   castT: 0, castKind: null,
   invuln: 0, animT: 0,
@@ -1153,6 +1213,7 @@ function tryCast(kind) {
   hero.mp -= def.cost;
   hero.cds[kind] = def.cd;
   hero.state = 'cast'; hero.castT = 0; hero.castKind = kind;
+  playAction('cast', 0.08, true, 1);
   const target = nearestEnemy(12);
   if (target) hero.facing = Math.atan2(target.pos.x - hero.pos.x, target.pos.z - hero.pos.z);
   navigator.vibrate && navigator.vibrate(18);
@@ -1355,10 +1416,13 @@ function nearestEnemy(maxDist) {
 function doAttack() {
   if (Game.state !== 'playing' || hero.state === 'dead' || hero.state === 'dodge' || hero.state === 'cast') return;
   if (hero.state === 'attack') {
-    if (hero.attackT > 0.35) hero.attackQueued = true;
+    if (hero.attackT > 0.3) hero.attackQueued = true;
     return;
   }
-  startAttackStep(0);
+  if (hero.airborne) { startAttackStep(0); return; }
+  // si vuelves a atacar enseguida, sigues el combo en vez de reiniciarlo
+  const next = (hero.comboTimer > 0 && hero.comboStep < 2) ? hero.comboStep + 1 : 0;
+  startAttackStep(next);
 }
 function startAttackStep(step) {
   hero.state = 'attack';
@@ -1366,8 +1430,25 @@ function startAttackStep(step) {
   hero.attackT = 0;
   hero.attackQueued = false;
   hero.attackHitDone = false;
+  hero.comboStep = step;
+  hero.comboTimer = 0.5;
   const t = nearestEnemy(7);
   if (t) hero.facing = Math.atan2(t.pos.x - hero.pos.x, t.pos.z - hero.pos.z);
+  if (hero.airborne) {
+    // combo aéreo: cada golpe te sostiene y te sube un poco más
+    hero.airHits++;
+    hero.vy = Math.max(hero.vy, 3.0 - hero.airHits * 0.3);
+    playAction('airAttack', 0.08, true, 1 / 0.5 * 1.15);
+  } else {
+    if (step === 2) {
+      // el remate del combo te eleva: sigue golpeando en el aire
+      hero.airborne = true;
+      hero.vy = 7.4;
+      hero.airHits = 0;
+      Particles.burst(new THREE.Vector3(hero.pos.x, 0.2, hero.pos.z), 0xffe9a8, 14, 3.5, 0.6, 0.4, 2);
+    }
+    playAction('attack' + (step + 1), 0.07, true, 1 / [0.34, 0.34, 0.52][step] * 0.42);
+  }
   Audio2.swing();
 }
 function doDodge() {
@@ -1381,6 +1462,7 @@ function doDodge() {
   else mv.set(Math.sin(hero.facing), 0, Math.cos(hero.facing));
   hero.dodgeDir.copy(mv);
   hero.facing = Math.atan2(mv.x, mv.z);
+  playAction('roll', 0.07, true, 1);
   Audio2.roll();
   navigator.vibrate && navigator.vibrate(10);
 }
@@ -1391,6 +1473,8 @@ function damageHero(amount, srcPos) {
   hero.hp -= amount;
   hero.invuln = 0.9;
   hero.chain = 0;
+  if (hero.state !== 'attack' && hero.state !== 'dodge' && hero.state !== 'cast')
+    playAction('hurt', 0.06, true, 1);
   Game.roundClean = false;
   showDmg(hero.pos, Math.round(amount), '#ff6b6b', true);
   Audio2.hurt();
@@ -1486,6 +1570,12 @@ function startCup(i) {
   hero.hp = hero.hpMax; hero.mp = hero.mpMax;
   hero.pos.set(0, 0, 3); hero.facing = Math.PI;
   hero.state = 'idle'; hero.invuln = 0; hero.chain = 0;
+  hero.y = 0; hero.vy = 0; hero.airborne = false; hero.airHits = 0;
+  hero.comboStep = 0; hero.comboTimer = 0;
+  if (hero.m) { hero.m.rig.rotation.x = 0; hero.m.rig.position.y = 0; }
+  hero.action = null; hero.actionName = '';
+  if (hero.m) hero.m.mixer.stopAllAction();
+  playAction('idle', 0);
   for (const k in hero.cds) hero.cds[k] = 0;
   clearField();
   show(null);
@@ -1607,6 +1697,32 @@ function toggleMute() {
 $('btnMute').textContent = Audio2.muted ? '✕' : '♪';
 
 /* ================================================================ updates */
+// Reproduce una acción con fundido; `once` para las que no se repiten.
+function playAction(name, fade = 0.14, once = false, speed = 1) {
+  const m = hero.m;
+  if (!m) return;
+  const next = m.actions[name];
+  if (!next) return;
+  if (hero.actionName === name && !once) return;
+  next.enabled = true;
+  next.setEffectiveTimeScale(speed);
+  next.setEffectiveWeight(1);
+  if (once) {
+    next.setLoop(THREE.LoopOnce, 1);
+    next.clampWhenFinished = true;
+    next.reset();
+  } else {
+    next.setLoop(THREE.LoopRepeat, Infinity);
+    if (hero.actionName !== name) next.reset();
+  }
+  if (hero.action && hero.action !== next) next.crossFadeFrom(hero.action, fade, false);
+  next.play();
+  hero.action = next;
+  hero.actionName = name;
+}
+
+const GRAVITY = 11.0;
+
 function updateHero(dt) {
   const m = hero.m;
   hero.animT += dt;
@@ -1615,10 +1731,12 @@ function updateHero(dt) {
   hero.invuln = Math.max(0, hero.invuln - dt);
   hero.mp = Math.min(hero.mpMax, hero.mp + 4.5 * dt);
   if (hero.chainTimer > 0) { hero.chainTimer -= dt; if (hero.chainTimer <= 0) hero.chain = 0; }
+  if (hero.state !== 'attack') hero.comboTimer = Math.max(0, hero.comboTimer - dt);
 
   if (hero.state === 'dead') {
-    m.rig.rotation.x = lerp(m.rig.rotation.x, -Math.PI / 2, 5 * dt);
-    m.root.position.copy(hero.pos);
+    playAction('die', 0.2, true);
+    m.rig.rotation.x = lerp(m.rig.rotation.x, -Math.PI / 2.6, 3 * dt);
+    m.root.position.set(hero.pos.x, hero.y, hero.pos.z);
     return;
   }
 
@@ -1631,9 +1749,12 @@ function updateHero(dt) {
   if (hero.state === 'attack') {
     hero.attackT += dt / [0.34, 0.34, 0.52][hero.attackStep];
     const step = hero.attackStep;
-    // pequeño avance en cada golpe
-    hero.pos.x += Math.sin(hero.facing) * dt * (hero.attackT < 0.4 ? 3.2 : 0.4);
-    hero.pos.z += Math.cos(hero.facing) * dt * (hero.attackT < 0.4 ? 3.2 : 0.4);
+    // avance al golpear (menor en el aire)
+    const lunge = hero.airborne ? 1.4 : 3.2;
+    hero.pos.x += Math.sin(hero.facing) * dt * (hero.attackT < 0.4 ? lunge : 0.4);
+    hero.pos.z += Math.cos(hero.facing) * dt * (hero.attackT < 0.4 ? lunge : 0.4);
+    // en el aire, cada golpe frena la caída: te sostienes mientras encadenas
+    if (hero.airborne && hero.attackT < 0.62) hero.vy = Math.max(hero.vy, -0.4);
     // aplicar daño en el frame activo
     if (!hero.attackHitDone && hero.attackT > 0.42) {
       hero.attackHitDone = true;
@@ -1661,9 +1782,18 @@ function updateHero(dt) {
       Particles.spawn(tp, { x: 0, y: 0, z: 0 }, new THREE.Color(0xfff2c0), 0.7, 0.16, 0, 0);
     }
     if (hero.attackT >= 1) {
-      if (hero.attackQueued && hero.attackStep < 2) startAttackStep(hero.attackStep + 1);
-      else hero.state = moving ? 'run' : 'idle';
+      if (hero.attackQueued && (hero.airborne || hero.attackStep < 2)) {
+        startAttackStep(hero.airborne ? hero.attackStep : hero.attackStep + 1);
+      } else hero.state = hero.airborne ? 'air' : (moving ? 'run' : 'idle');
     }
+  } else if (hero.state === 'air') {
+    // en el aire se puede dirigir la caída
+    if (moving) {
+      hero.pos.addScaledVector(mv, hero.speed * 0.55 * dt);
+      hero.facing = angleLerp(hero.facing, Math.atan2(mv.x, mv.z), 8 * dt);
+    }
+    playAction('airAttack', 0.18, false, 0);   // pose de caída
+    if (!hero.airborne) hero.state = moving ? 'run' : 'idle';
   } else if (hero.state === 'dodge') {
     hero.dodgeT += dt;
     hero.pos.addScaledVector(hero.dodgeDir, 10 * dt * (1 - hero.dodgeT / 0.5));
@@ -1680,67 +1810,58 @@ function updateHero(dt) {
       hero.state = 'run';
       hero.pos.addScaledVector(mv, hero.speed * dt);
       hero.facing = angleLerp(hero.facing, Math.atan2(mv.x, mv.z), 14 * dt);
-    } else hero.state = 'idle';
+      playAction('run', 0.16);
+    } else {
+      hero.state = 'idle';
+      playAction('idle', 0.22);
+    }
   }
 
   // límites de la arena
   const rr = Math.hypot(hero.pos.x, hero.pos.z);
   if (rr > 12) { hero.pos.x *= 12 / rr; hero.pos.z *= 12 / rr; }
 
-  /* --------- animación procedural --------- */
-  m.root.position.copy(hero.pos);
-  m.root.rotation.y = hero.facing;
-  const t = hero.animT;
-  if (hero.state === 'dodge') {
-    m.rig.rotation.x = (hero.dodgeT / 0.45) * TAU;
-    m.rig.position.y = Math.sin((hero.dodgeT / 0.45) * Math.PI) * 0.25;
-  } else if (hero.state === 'attack') {
-    m.rig.rotation.x = 0.12;
-    m.rig.position.y = 0;
-    const p = hero.attackT;
-    const sw = Math.sin(clamp((p - 0.15) / 0.5, 0, 1) * Math.PI);
-    if (hero.attackStep === 0) {
-      m.armR.rotation.set(-2.5 + sw * 2.9, 0, -0.4 + sw * 0.9);
-      m.rig.rotation.y = -0.5 + sw * 1.0;
-    } else if (hero.attackStep === 1) {
-      m.armR.rotation.set(-2.2 + sw * 2.6, 0, 0.7 - sw * 1.4);
-      m.rig.rotation.y = 0.5 - sw * 1.0;
-    } else {
-      m.armR.rotation.set(-1.5 + sw * 1.2, 0, -1.4);
-      m.rig.rotation.y = p * TAU; // giro completo
+  /* --------- gravedad y colocación --------- */
+  if (hero.airborne) {
+    hero.vy -= GRAVITY * dt;
+    hero.y += hero.vy * dt;
+    if (hero.y <= 0) {
+      hero.y = 0; hero.vy = 0; hero.airborne = false; hero.airHits = 0;
+      Particles.burst(new THREE.Vector3(hero.pos.x, 0.15, hero.pos.z), 0xd7b26c, 8, 2.2, 0.5, 0.3, 3);
+      if (hero.state === 'attack') { hero.state = 'idle'; hero.attackHitDone = true; }
     }
-    m.armL.rotation.set(sw * 0.8 - 0.3, 0, 0.3);
-    m.legL.rotation.x = 0.3; m.legR.rotation.x = -0.3;
+  }
+
+  m.root.position.set(hero.pos.x, hero.y, hero.pos.z);
+  m.root.rotation.y = hero.facing;
+
+  /* --------- animación: mocap nativo + clips de combate --------- */
+  if (hero.state === 'dodge') {
+    // el clip encoge el cuerpo; el giro completo lo hace la raíz
+    m.rig.rotation.x = (hero.dodgeT / 0.45) * TAU;
+    m.rig.position.y = Math.sin((hero.dodgeT / 0.45) * Math.PI) * 0.42;
+  } else {
+    m.rig.rotation.x = 0;
+    m.rig.position.y = 0;
+  }
+
+  if (hero.state === 'attack') {
+    // partículas en la punta del arma durante el golpe
+    if (hero.attackT > 0.2 && hero.attackT < 0.8) {
+      const tp = new THREE.Vector3();
+      m.tip.getWorldPosition(tp);
+      Particles.spawn(tp, { x: 0, y: 0, z: 0 }, new THREE.Color(0xfff2c0), 0.85, 0.18, 0, 0);
+    }
   } else if (hero.state === 'cast') {
-    m.rig.rotation.x = -0.06;
-    m.rig.rotation.y = 0;
-    const p = clamp(hero.castT / 0.35, 0, 1);
-    m.armR.rotation.set(-2.9 * Math.sin(p * Math.PI * 0.6) - 0.2, 0, 0);
-    m.armL.rotation.set(-0.4, 0, 0.4);
     const tp = new THREE.Vector3();
     m.tip.getWorldPosition(tp);
     const cc = { fire: 0xff8030, ice: 0x9fdcff, thunder: 0xffe36b, cure: 0x7bf58b }[hero.castKind || 'fire'];
     Particles.spawn(tp, { x: rand(-0.5, 0.5), y: rand(0.5, 1.5), z: rand(-0.5, 0.5) },
-      new THREE.Color(cc), 0.6, 0.3, 0, 0);
-  } else if (hero.state === 'run') {
-    m.rig.rotation.x = 0.14;
-    m.rig.rotation.y = 0;
-    const w = t * 11;
-    m.rig.position.y = Math.abs(Math.sin(w)) * 0.06;
-    m.legL.rotation.x = Math.sin(w) * 0.9;
-    m.legR.rotation.x = -Math.sin(w) * 0.9;
-    m.armL.rotation.x = -Math.sin(w) * 0.7;
-    m.armR.rotation.set(-Math.sin(w + Math.PI) * 0.5 - 0.3, 0, -0.2);
-  } else {
-    m.rig.rotation.x = 0;
-    m.rig.rotation.y = 0;
-    m.rig.position.y = Math.sin(t * 2.2) * 0.03;
-    m.legL.rotation.x = m.legR.rotation.x = 0;
-    m.armL.rotation.set(Math.sin(t * 2.2) * 0.06, 0, 0.15);
-    m.armR.rotation.set(Math.sin(t * 2.2 + 1) * 0.06, 0, -0.15);
+      new THREE.Color(cc), 0.7, 0.3, 0, 0);
   }
+
   // parpadeo de invulnerabilidad
-  m.root.visible = hero.invuln <= 0 || Math.floor(hero.invuln * 12) % 2 === 0;
+  m.root.visible = hero.invuln <= 0 || Math.floor(hero.invuln * 22) % 3 !== 0;
 }
 
 function updateEnemies(dt) {
@@ -2104,6 +2225,7 @@ function updateHUD() {
 /* ================================================================ bucle */
 const clock = new THREE.Clock();
 const camPos = new THREE.Vector3().copy(CAM_OFF).add(hero.pos);
+let camFollowY = 0;
 
 function animate() {
   requestAnimationFrame(animate);
@@ -2146,6 +2268,8 @@ function animate() {
     }
   }
 
+  if (hero.m && dt > 0) hero.m.mixer.update(dt);
+
   if (dt > 0) {
     Particles.update(dt);
     updateHearts(dt);
@@ -2155,8 +2279,10 @@ function animate() {
   updateDmg(dt);
   if (running) updateHUD();
 
-  // cámara con retardo + temblor
+  // cámara con retardo + temblor (sigue parcialmente la altura en los saltos)
+  camFollowY = lerp(camFollowY, hero.y * 0.55, 1 - Math.pow(0.02, dt || 0.016));
   const targetCam = new THREE.Vector3().copy(hero.pos).add(CAM_OFF);
+  targetCam.y += camFollowY;
   camPos.lerp(targetCam, 1 - Math.pow(0.001, dt || 0.016));
   camera.position.copy(camPos);
   if (shakeAmt > 0.001) {
@@ -2164,10 +2290,34 @@ function animate() {
     camera.position.y += rand(-1, 1) * shakeAmt * 0.25;
     shakeAmt *= Math.pow(0.0001, dt || 0.016);
   }
-  camera.lookAt(hero.pos.x, hero.pos.y + 0.9, hero.pos.z - 0.6);
+  camera.lookAt(hero.pos.x, hero.pos.y + 0.9 + camFollowY, hero.pos.z - 0.6);
 
   renderer.render(scene, camera);
 }
 
+/* ================================================================ arranque */
+window.__dbg = () => ({ state: hero.state, anim: hero.actionName, y: +hero.y.toFixed(2),
+  vy: +hero.vy.toFixed(2), air: hero.airborne, hp: Math.round(hero.hp) });
+
 refreshTitle();
 animate();
+
+(async () => {
+  const cups = document.querySelectorAll('.cup');
+  const hint = document.querySelector('#ovTitle .hint');
+  const prevHint = hint ? hint.innerHTML : '';
+  cups.forEach(c => { c.style.pointerEvents = 'none'; c.style.opacity = '.45'; });
+  if (hint) hint.innerHTML = 'Cargando al héroe…';
+  try {
+    hero.m = await loadHeroModel();
+    hero.m.root.position.set(hero.pos.x, 0, hero.pos.z);
+    hero.m.root.rotation.y = Math.PI;
+    playAction('idle', 0);
+  } catch (err) {
+    if (hint) hint.innerHTML = 'No se pudo cargar el modelo del héroe.<br/>' + err.message;
+    return;
+  }
+  cups.forEach(c => { c.style.pointerEvents = ''; c.style.opacity = ''; });
+  if (hint) hint.innerHTML = prevHint;
+  window.HERO_READY = true;
+})();
